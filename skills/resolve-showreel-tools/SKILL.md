@@ -79,4 +79,22 @@ python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts "Ha
 | swiftc(macOS) | build-video-scenes(누끼) | 없으면 누끼 없이 진행 |
 | 공용 효과음 라이브러리 | prepare-video-audio, deliver-video | 환경 변수 `SHOWREEL_SFX_LIBRARY`, 없으면 `<작업 폴더>/sfx-library` |
 
+## 자료 위치
+
+references 문서는 서로를 파일 이름만으로 부른다(예: "`design.md`의 뻔한 화면"). 이름을 만나면 아래 경로에서 읽는다. 각 파일은 그 기술을 맡은 leaf가 소유한다.
+
+| 이름 | 경로 |
+| --- | --- |
+| `brief.md` | `../plan-video/references/brief.md` |
+| `story.md` | `../plan-video/references/story.md` |
+| `audio.md` | `../prepare-video-audio/references/audio.md` |
+| `images.md` | `../build-video-scenes/references/images.md` |
+| `design.md` | `../build-video-scenes/references/design.md` |
+| `engine.md` | `../build-video-scenes/references/engine.md` |
+| `techniques.md` | `../build-video-scenes/references/techniques.md` |
+| `qa.md` | `../critique-video/references/qa.md` |
+| `contract.md` | `references/contract.md`(이 폴더) |
+
+`concept.md`, `research.md`, `storyboard.md`, `timeline.json`처럼 프로젝트 파일 이름은 프로젝트 폴더 안의 파일이다. 스크립트 이름(`timeline.py` 등)은 `$S` 안의 파일이다.
+
 공유 계약(결과물 기준, 기술 기본값, 작업 위치, 프로젝트 파일, op55 경계)은 `references/contract.md`에 있다.

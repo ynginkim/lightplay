@@ -33,84 +33,116 @@
       "skills/resolve-showreel-tools/SKILL.md": {
         "reason": "op55가 기준 커밋 828990b에서 skill 하나라서 op55 문서를 $O/../SKILL.md로 읽는다",
         "close_when": "op55가 op55-compose·op55-render·op55-verify·resolve-op55-tools로 변환되면 이 경로를 leaf Read와 resolve-op55-tools/scripts로 바꾸고 transition을 지운다"
+      },
+      "skills/prepare-video-audio/SKILL.md": {
+        "reason": "op55가 기준 커밋 828990b에서 skill 하나라서 음악 절차를 $O/../SKILL.md 문서로 읽는다",
+        "close_when": "op55가 op55-compose·op55-render·op55-verify·resolve-op55-tools로 변환되면 음악 단계를 세 leaf의 Read로 바꾸고 O를 resolve-op55-tools/scripts로 정한 뒤 transition을 지운다"
       }
     }
   },
   "migration": {
     "rewritten": [
+      "skills/build-video-scenes/SKILL.md",
+      "skills/build-video-scenes/references/design.md",
+      "skills/build-video-scenes/references/engine.md",
+      "skills/build-video-scenes/references/images.md",
+      "skills/build-video-scenes/references/techniques.md",
+      "skills/critique-video/SKILL.md",
+      "skills/critique-video/references/qa.md",
+      "skills/deliver-video/SKILL.md",
+      "skills/plan-video/SKILL.md",
+      "skills/plan-video/references/brief.md",
+      "skills/plan-video/references/story.md",
+      "skills/prepare-video-audio/SKILL.md",
+      "skills/prepare-video-audio/references/audio.md",
+      "skills/resolve-showreel-tools/LICENSE",
+      "skills/resolve-showreel-tools/SKILL.md",
+      "skills/resolve-showreel-tools/assets",
+      "skills/resolve-showreel-tools/references/contract.md",
+      "skills/resolve-showreel-tools/scripts",
       "skills/showreel-mode/SKILL.md",
       "skills/showreel-mode/playbooks/create-video.md",
-      "skills/showreel-mode/playbooks/revise-video.md",
-      "skills/resolve-showreel-tools/SKILL.md",
-      "skills/resolve-showreel-tools/references/contract.md"
+      "skills/showreel-mode/playbooks/revise-video.md"
     ],
-    "pending": [
-      {
-        "id": "M01",
-        "path": "skills/plan-video/SKILL.md"
-      },
-      {
-        "id": "M02",
-        "path": "skills/plan-video/references/brief.md"
-      },
-      {
-        "id": "M03",
-        "path": "skills/plan-video/references/story.md"
-      },
-      {
-        "id": "M04",
-        "path": "skills/prepare-video-audio/SKILL.md"
-      },
-      {
-        "id": "M05",
-        "path": "skills/prepare-video-audio/references/audio.md"
-      },
-      {
-        "id": "M06",
-        "path": "skills/build-video-scenes/SKILL.md"
-      },
-      {
-        "id": "M07",
-        "path": "skills/build-video-scenes/references/images.md"
-      },
-      {
-        "id": "M08",
-        "path": "skills/build-video-scenes/references/design.md"
-      },
-      {
-        "id": "M09",
-        "path": "skills/build-video-scenes/references/engine.md"
-      },
-      {
-        "id": "M10",
-        "path": "skills/build-video-scenes/references/techniques.md"
-      },
-      {
-        "id": "M11",
-        "path": "skills/critique-video/SKILL.md"
-      },
-      {
-        "id": "M12",
-        "path": "skills/critique-video/references/qa.md"
-      },
-      {
-        "id": "M13",
-        "path": "skills/deliver-video/SKILL.md"
-      },
-      {
-        "id": "M14",
-        "path": "skills/resolve-showreel-tools/scripts"
-      },
-      {
-        "id": "M15",
-        "path": "skills/resolve-showreel-tools/assets"
-      },
-      {
-        "id": "M16",
-        "path": "skills/resolve-showreel-tools/LICENSE"
-      }
-    ]
+    "pending": []
   },
-  "copies": [],
-  "command_snapshots": []
+  "copies": [
+    {
+      "source": "LICENSE",
+      "target": "skills/resolve-showreel-tools/LICENSE"
+    }
+  ],
+  "command_snapshots": [
+    {
+      "reference": "skills/build-video-scenes/SKILL.md",
+      "snapshot": "docs/command-snapshot.md",
+      "commands": [
+        "~/.claude/skills/codex-image/scripts/codex_imagegen_batch.sh <프로젝트>/assets/gen \"프롬프트::이름.png\" …",
+        "python3 $S/prep_images.py <프로젝트>/assets/gen --out <프로젝트>/assets/img [--cutout]",
+        "python3 $S/prep_images.py --sheet <프로젝트>/assets/img --out <프로젝트>/qa/sheet_images.png"
+      ]
+    },
+    {
+      "reference": "skills/critique-video/SKILL.md",
+      "snapshot": "docs/command-snapshot.md",
+      "commands": [
+        "node $S/render.mjs --dir <프로젝트>/reel --stills <시작+0.5>,<큐+0.4>,<끝-0.6> --outdir <프로젝트>/qa/stills_<장면>",
+        "node $S/render.mjs --dir <프로젝트>/reel --every 0.5 --outdir <프로젝트>/qa/stills",
+        "python3 $S/contact_sheet.py --dir <프로젝트>/qa/stills --out <프로젝트>/qa/sheet_stills.png --timeline <프로젝트>/timeline.json",
+        "node $S/render.mjs --dir <프로젝트>/reel --out <프로젝트>/out/draft.mp4 --scale 0.5",
+        "python3 $S/contact_sheet.py --video <프로젝트>/out/draft.mp4 --every 1 --out <프로젝트>/qa/sheet_draft.png",
+        "python3 $S/motion_check.py <프로젝트>/out/draft.mp4 --timeline <프로젝트>/timeline.json",
+        "python3 $S/contact_sheet.py --video <프로젝트>/out/draft.mp4 --around <구간 경계 초들> --frames 3 --out <프로젝트>/qa/sheet_cuts.png",
+        "python3 $S/flash_list.py <클립> <클립 시작 초>"
+      ]
+    },
+    {
+      "reference": "skills/deliver-video/SKILL.md",
+      "snapshot": "docs/command-snapshot.md",
+      "commands": [
+        "node $S/render.mjs --dir <프로젝트>/reel --out <프로젝트>/out/video.mp4 --sub 4 --format png",
+        "python3 $S/mix.py <프로젝트>/timeline.json",
+        "python3 $S/finish.py --video <프로젝트>/out/video.mp4 --audio <프로젝트>/audio/mix.wav \\",
+        "  --name \"<제목>_<길이>s\" --outdir <프로젝트>/out --timeline <프로젝트>/timeline.json",
+        "python3 $S/render_pieces.py --dir <프로젝트>/reel --out <프로젝트>/out/video.mp4 --cuts 0,51.6,103.2,<길이>",
+        "python3 $S/render_pieces.py --dir <프로젝트>/reel --out <프로젝트>/out/video.mp4 --cuts 0,51.6,103.2,<길이> --only 2",
+        "python3 $S/qa_check.py <프로젝트>/out/<이름>.mp4 --timeline <프로젝트>/timeline.json --script <프로젝트>/script.json --stt",
+        "python3 $S/sfx_library.py add <프로젝트>",
+        "python3 $S/cleanup.py <프로젝트>",
+        "python3 $S/cleanup.py <프로젝트> --apply"
+      ]
+    },
+    {
+      "reference": "skills/plan-video/SKILL.md",
+      "snapshot": "docs/command-snapshot.md",
+      "commands": [
+        "python3 -c \"import datetime;print(datetime.date(2026,11,20).strftime('%A'))\""
+      ]
+    },
+    {
+      "reference": "skills/prepare-video-audio/SKILL.md",
+      "snapshot": "docs/command-snapshot.md",
+      "commands": [
+        "python3 $S/narrate.py <프로젝트>/script.json --stt",
+        "node $O/render.mjs --score <프로젝트>/audio/music/score.mjs --out <프로젝트>/audio/music/music.wav --analysis <프로젝트>/audio/music/analysis.json",
+        "python3 $O/verify.py <프로젝트>/audio/music/music.wav --analysis <프로젝트>/audio/music/analysis.json --waveform-png",
+        "python3 $S/eleven.py sfx-kit <프로젝트>/audio/sfx --names impact,riser",
+        "python3 $S/timeline.py <프로젝트>/script.json --music-analysis audio/music/analysis.json",
+        "python3 $O/verify.py <프로젝트>/audio/music/music.wav --analysis <프로젝트>/audio/music/analysis.json --mix <프로젝트>/timeline.json",
+        "python3 $S/sfx_library.py find 종이",
+        "python3 $S/sfx_library.py use <이름…> --to <프로젝트>"
+      ]
+    },
+    {
+      "reference": "skills/resolve-showreel-tools/SKILL.md",
+      "snapshot": "docs/command-snapshot.md",
+      "commands": [
+        "python3 $S/preflight.py",
+        "python3 $S/eleven.py voices --lang ko",
+        "python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts \"Hahmlet:wght@300;900\"]",
+        "npx skills add ynginkim/op55 -a claude-code",
+        "node $O/setup.mjs"
+      ]
+    }
+  ]
 }

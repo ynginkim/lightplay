@@ -31,7 +31,7 @@
 ```
 
 - 5장씩 병렬로 돌고 장당 약 1분 걸린다. Bash `run_in_background`로 돌리고 그동안 다른 작업을 한다. 동시 생성 수는 스크립트에 5로 고정돼 있으니, 줄여야 하면(다른 작업과 사용량을 나눌 때) 한 번에 넘기는 항목 수를 줄인다.
-- 결과는 `assets/gen/`에, 로그는 `assets/gen/.codex-imagegen-logs/`에 남는다.
+- 결과는 `<프로젝트>/assets/gen/`에, 로그는 `<프로젝트>/assets/gen/.codex-imagegen-logs/`에 남는다.
 - 실패("model is at capacity")한 것만 다시 돌린다. 이미 있는 파일은 목록에서 빼고 실행한다.
 - 해상도는 약 1.57MP다(16:9는 1672×941, 3:2는 1536×1024). 영상에서는 `prep_images.py`로 2400px까지 키운다.
 
@@ -95,8 +95,8 @@ bash $S/codex_ref_image.sh <프로젝트>/assets/gen/g01.png \
 ## 후처리와 확인
 
 ```bash
-python3 scripts/prep_images.py <프로젝트>/assets/gen <프로젝트>/assets/photos --out <프로젝트>/assets/img [--blur] [--cutout]
-python3 scripts/prep_images.py --sheet <프로젝트>/assets/img --out <프로젝트>/qa/sheet_images.png
+python3 $S/prep_images.py <프로젝트>/assets/gen <프로젝트>/assets/photos --out <프로젝트>/assets/img [--blur] [--cutout]
+python3 $S/prep_images.py --sheet <프로젝트>/assets/img --out <프로젝트>/qa/sheet_images.png
 ```
 
 - 레터박스 검은 띠를 자동으로 잘라 내고, 긴 변 2400px로 맞추고, JPG 품질 92로 저장한다.

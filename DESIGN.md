@@ -1,6 +1,6 @@
 # motion-graphic-skills 설계
 
-Status: draft. 골격 단계다. 이식·검증 결과는 이후 커밋에서 이 문서에 반영한다.
+Status: draft. 이식을 마쳤고 설치 smoke·dry-run·CI 결과는 다음 커밋에서 반영한다.
 
 한 줄 철학: 주제에서 콘셉트를 세우고, 화면은 렌더한 증거로 판정하며, 오디오와 화면은 이름 붙은 큐로 묶어 늦은 수정을 싸게 만든다.
 
@@ -57,6 +57,15 @@ Status: draft. 골격 단계다. 이식·검증 결과는 이후 커밋에서 �
 - op55는 독립 skillset이다. showreel은 op55의 파일 계약(`score.mjs`, `music.wav`, `analysis.json`, `music.meta.json`)과 op55 문서로만 연결한다. op55는 아직 skill 하나라서 현재 op55 `SKILL.md`를 읽는다. 이 경로는 `skillset.json`의 `portability.transitions`에 "op55가 leaf로 변환됨"을 닫을 조건으로 등록한다.
 - 스크립트 이동 뒤 예전 설치 경로 탐색에 기대지 않는다. adapter가 `S`(이 skillset의 scripts)와 `O`(op55 scripts)의 실제 절대 경로를 확인하고, 자식 명령에 `OP55_SCRIPTS`, `SHOWREEL_SCRIPTS`, `--mix-py`를 명시한다. 전역 env와 사용자 설정은 바꾸지 않는다.
 
+## 이식 결과
+
+원본 `SKILL.md`의 0~11단계와 지킬 것·자주 생기는 문제·참조 표는 [이식 장부](docs/migration.md)의 A01~A28로 모두 새 위치에 옮겼다. references 8개, scripts 22개, assets 5개를 담당 skill로 옮겼고 `migration.pending`은 0건이다. 원본 명령 35개는 [명령 스냅샷](docs/command-snapshot.md)과 각 leaf에 같은 문자열로 남아 있고 `command_snapshots`가 이를 검사한다.
+
+| 대상 | 결과 |
+| --- | --- |
+| scripts 22개, assets 5개, references/design.md (모두 28개) | `374df70`과 바이트가 같다 |
+| references 7개 | 경로 문장과 검사기 표기만 바꿨다(줄 목록은 이식 장부). 인계 조건 "원본 바이트 유지, 경로 문장만 다시 씀"과 다른 점은 검사기 표기 13줄(긴 대시 10줄, API 경로 2줄, 인라인 `/tmp` 1줄)이다. 구조 검사기의 LONG_DASH·REF 규칙을 우회하지 않으려고 뜻을 바꾸지 않는 문장부호·표기만 고쳤다 |
+
 ## 이번 결정으로 대체
 
 | ID | 원안(plan.md) | 이번 결정 |
@@ -66,6 +75,7 @@ Status: draft. 골격 단계다. 이식·검증 결과는 이후 커밋에서 �
 | Q2 | op55 leaf 호출 | op55가 아직 skill 하나이므로 현재 op55 skill 경로를 쓰고 transition을 등록 |
 | 라이선스 | 해당 없음 | `LICENSE`에 원 저작권 줄을 유지하고 본인 줄 추가. `resolve-showreel-tools/LICENSE` 사본을 `copies`로 바이트 대조 |
 | 커밋 | 격리 브랜치 | `main`에서 직접, 단계마다 검사 통과 뒤 커밋·push. force push·PR 없음 |
+| 음악 재생성 뒤 화면 재사용 | 원본 `SKILL.md:149` "박 격자가 같으면 화면 재렌더 불필요" | 격자에 더해 화면이 소비하는 큐·히트·음악 에너지 곡선·크레딧 문구를 비교해 정함(plan §3, artifact-graph). `timeline.py`가 WAV에서 에너지 곡선을 다시 계산하기 때문 |
 | 정리 | 원본 `SKILL.md:256` "지울 목록부터 본 뒤 정리" | 목록과 합계를 납품 보고에 붙이고, 사용자가 끝났다고 확인한 뒤에만 `--apply` 또는 `--apply --trash`(plan §2·§4, video-creator `CLAUDE.md` "납품 뒤 정리") |
 
 ## 진입 정책과 언어
@@ -89,7 +99,7 @@ leaf skill과 principle의 자동 호출은 `false`다.
 | S3 adapter 소비 leaf의 제목 직후 포인터 | 적용. 작업 leaf 5개 |
 | S4 제품명 lint·경로별 예외·transition | 적용. 예전 설치 경로·동기화·중첩 호출 문구 |
 | S5 이전 장부 prune | 적용 |
-| S6 명령 스냅샷 대조 | 적용 예정. 원본 `SKILL.md`의 명령 문자열과 대조(도메인 스크립트 help는 실행 금지라 기록하지 않음) |
+| S6 명령 스냅샷 대조 | 적용. 원본 `SKILL.md`의 명령 문자열 35개와 대조. 도메인 스크립트 help는 실행 금지라 기록하지 않음 |
 | S7 install smoke | 적용 |
 | S8 진입 정책 | 적용 |
 | S9 색인 밖 principle 사용 | 적용 |

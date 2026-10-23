@@ -225,7 +225,7 @@ REEL.scene({ id: 'jamo', start: 0, end: cue('scene.jamo.end', 6),
 
 ## T06. 가변 굵기 펌핑과 굵기 물결
 
-Pretendard Variable(45–920)의 `'wght'`를 글자마다 바꾼다. 킥에는 모든 글자가 동시에 900으로 치고, 풀림만 x 위치만큼 늦춰 물결이 흐르게 한다.
+Pretendard Variable(45~920)의 `'wght'`를 글자마다 바꾼다. 킥에는 모든 글자가 동시에 900으로 치고, 풀림만 x 위치만큼 늦춰 물결이 흐르게 한다.
 
 ```js
 const b = BEATS.filter((x) => x - F <= ctx.t).pop() ?? -99;           // 가장 최근 박
@@ -344,7 +344,7 @@ const head = Math.min(1824, 700 + 24 * ctx.t * REEL.fps);
 
 ## T12. 기계식 카운터와 슬롯 롤
 
-자리마다 0–9–0 세로 띠를 두고, 윗자리는 아랫자리가 9→0을 넘을 때만 돌린다. 창 위아래 10%는 그라디언트 마스크로 지운다.
+자리마다 0-9-0 세로 띠를 두고, 윗자리는 아랫자리가 9→0을 넘을 때만 돌린다. 창 위아래 10%는 그라디언트 마스크로 지운다.
 
 ```js
 const odoPos = (v, place) => { if (!place) return v; const d = 10 ** place, lo = ((v % d) + d) % d; return Math.floor(v / d) + clamp(lo - (d - 1), 0, 1); };

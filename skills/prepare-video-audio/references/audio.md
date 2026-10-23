@@ -12,7 +12,7 @@
 
 ## ElevenLabs 키와 플랜
 
-`python3 scripts/eleven.py check`로 키·보이스·모델을 점검한다. 키가 없으면 아래 절차를 사용자에게 그대로 안내한다(같은 내용이 `eleven.py`의 `KEY_HELP`에 있다).
+`python3 $S/eleven.py check`로 키·보이스·모델을 점검한다. 키가 없으면 아래 절차를 사용자에게 그대로 안내한다(같은 내용이 `eleven.py`의 `KEY_HELP`에 있다).
 
 1. https://elevenlabs.io 가입·로그인 → 왼쪽 아래 Developers(또는 프로필) → API Keys → Create API Key
 2. 권한: Text to Speech, Speech to Text, Sound Effects, Music, Voices(Read), User(Read)를 켠다. User Read가 있어야 남은 크레딧을 조회할 수 있다. 키는 한 번만 보이므로 바로 복사한다.
@@ -29,7 +29,7 @@
 | 상업적 이용 | 불가(출처 표기 필요) | 가능 |
 
 - 동시 요청 한도는 플랜에 따라 2~5개다. 넘으면 429가 나는데, `eleven.py`가 기다렸다가 다시 시도한다. 스크립트 기본 동시성은 TTS 2개, 효과음 3개다.
-- `/v1/user/subscription`이 401(missing user_read)이면 키 권한 문제일 뿐 키는 정상이다. 크레딧은 대시보드에서 확인하라고 안내한다.
+- `GET /v1/user/subscription`이 401(missing user_read)이면 키 권한 문제일 뿐 키는 정상이다. 크레딧은 대시보드에서 확인하라고 안내한다.
 - 막히면 우회하지 말고 바로 알린다. 사용자가 그 자리에서 결제한 사례가 있다.
 
 ## 보이스와 모델
@@ -76,10 +76,10 @@ Marcus 낭독 설정(검증한 값): stability 0.42~0.5, similarity 0.8~0.82, st
 ## 나레이션 생성과 발음 검증
 
 ```bash
-python3 scripts/narrate.py <프로젝트>/script.json --stt
+python3 $S/narrate.py <프로젝트>/script.json --stt
 ```
 
-- 줄마다 `/with-timestamps`로 생성해 글자 단위 정렬(`<id>.align.json`)을 저장한다. 한국어는 `alignment`를 쓴다. `normalized_alignment`는 한글을 로마자로 돌려준다.
+- 줄마다 `…/with-timestamps`로 생성해 글자 단위 정렬(`<id>.align.json`)을 저장한다. 한국어는 `alignment`를 쓴다. `normalized_alignment`는 한글을 로마자로 돌려준다.
 - `--stt`: Scribe로 받아써서 화면 표기·발음 표기 중 가까운 쪽과 비교한다. 유사도가 0.85 미만이거나 숫자가 다르면 ✗다.
 - 바뀐 줄만 다시 만든다. 특정 줄만 다시 만들려면 `--only n03,n07 --force`.
 - `takes`: 시드를 바꿔 N번 만들고 STT가 가장 정확한 테이크를 본 파일로 쓴다. 나머지는 `<id>.t2.mp3` 등으로 남는다.
@@ -120,13 +120,13 @@ stability를 바꾸거나 모델을 통째로 바꾸는 것은 효과가 없었�
 - 쇼릴은 섹션을 `concept.md`의 구간과 맞춘다. 구간마다 소리의 질감이 바뀌어야 하면 섹션 `style`에 악기 변화를 적는다.
 - sections의 energy(0~1)는 층의 개수를 정한다. 플랜에서는 무드에 맞는 문장으로 바뀐다(테크 무드에 "orchestra"가 들어가지 않는다).
 - 섹션은 4마디 단위로 잡는다(bpm 120이면 8초, 90이면 10.67초). 경계가 마디에 있지 않으면 `plan`이 경고한다. 3초보다 짧은 섹션은 API가 받지 않으므로, `plan`이 경계를 3초 지점으로 밀거나 앞 섹션에 합친다.
-- events: hit, boom, braam, riser(끝이 t), whoosh, chime, stop(음악만 잠깐 끊기 — 정적 연출)
+- events: hit, boom, braam, riser(끝이 t), whoosh, chime, stop(음악만 잠깐 끊기: 정적 연출)
 
 ### 2) ElevenLabs Music
 
 ```bash
-python3 scripts/music_tools.py plan audio/music/spec.json            # → audio/music/plan.json
-python3 scripts/eleven.py music audio/music/music.mp3 --plan audio/music/plan.json
+python3 $S/music_tools.py plan audio/music/spec.json            # → audio/music/plan.json
+python3 $S/eleven.py music audio/music/music.mp3 --plan audio/music/plan.json
 ```
 
 - 섹션은 3초 이상이어야 한다. `plan`이 짧은 섹션을 앞 섹션에 합친다.
@@ -136,12 +136,12 @@ python3 scripts/eleven.py music audio/music/music.mp3 --plan audio/music/plan.js
 - 생성된 곡 길이가 요청과 다를 수 있다(10초 요청에 7초가 나온 사례). `music_tools.py fit`으로 영상 길이에 맞춘 뒤 분석한다.
 - 생성된 곡은 대개 평평하다(평가에서 두 곡 모두 82~85%가 최대 세기에서 3dB 안이었다). `analyze`가 경고하면 큰 히트 앞을 믹스에서 내린다. `script.json`의 `music`에 `"automation": [[0, 0], ["line.n07-2.5", 0], ["line.n07-0.3", -10], ["line.n07", 0]]`처럼 [시각, dB]를 적으면 `mix.py`가 그 곡선대로 음악 음량을 바꾼다. 시각은 초·큐 이름·"큐±초"를 쓸 수 있다. 히트 2~3초 앞에서 -8~-12dB로 내렸다가 히트 프레임에 0dB로 돌아오게 하면, 같은 곡에서도 예고 → 타격 구조가 들린다.
 - 스펙을 쓸 때 섹션 에너지에 대비를 둔다. 절정(0.9 이상)은 전체의 25% 안, 가운데쯤에 0.3~0.45의 브레이크다운 하나, 이웃 섹션은 `style`에 악기 변화를 적는다(예: "strings drop out, only ticking pulse", "add brass stabs and choir"). `plan`이 평평한 스펙을 경고한다.
-- 플랜의 stop(정적 연출)은 무시되는 경우가 많았다(2분 곡에서 확인). 생성 뒤 `analyze`로 다음 프레이즈의 첫 박을 찾고 그 자리까지 끊는다: `python3 scripts/music_tools.py gap audio/music/music.mp3 audio/music/music_edit.wav 103.2-103.97`. `script.json`의 `music.file`을 `audio/music/music_edit.wav`로 바꾸고 `timeline.py`부터 다시 돌린다.
+- 플랜의 stop(정적 연출)은 무시되는 경우가 많았다(2분 곡에서 확인). 생성 뒤 `analyze`로 다음 프레이즈의 첫 박을 찾고 그 자리까지 끊는다: `python3 $S/music_tools.py gap audio/music/music.mp3 audio/music/music_edit.wav 103.2-103.97`. `script.json`의 `music.file`을 `audio/music/music_edit.wav`로 바꾸고 `timeline.py`부터 다시 돌린다.
 
 ### 3) 합성 음악(대체 경로)
 
 ```bash
-python3 scripts/synth_music.py music audio/music/spec.json audio/music/music.wav
+python3 $S/synth_music.py music audio/music/spec.json audio/music/music.wav
 ```
 
 음원 없이 numpy로 만든다. 같은 입력이면 같은 소리가 나고 몇 초면 끝난다. ElevenLabs Music보다 단순하므로 납품 보고에 합성 음악이라고 적는다.
@@ -151,7 +151,7 @@ python3 scripts/synth_music.py music audio/music/spec.json audio/music/music.wav
 **ElevenLabs Music은 플랜의 섹션 길이를 지키지 않는다.** 대개 4마디 단위 프레이즈로 수렴한다(120 BPM이면 8초). 생성한 뒤 반드시 분석한다.
 
 ```bash
-python3 scripts/music_tools.py analyze audio/music/music.mp3     # → analysis.json: bpm, beats, downbeats, hits, energy
+python3 $S/music_tools.py analyze audio/music/music.mp3     # → analysis.json: bpm, beats, downbeats, hits, energy
 ```
 
 - 분석 결과를 보고 장면 경계를 실제 히트·다운비트로 옮긴다. `timeline.py --music-analysis`를 주면 `music.hit1…` 큐가 생기고, 화면에서 `REEL.TL.music.hits`·`downbeats`를 쓸 수 있다.
@@ -160,19 +160,19 @@ python3 scripts/music_tools.py analyze audio/music/music.mp3     # → analysis.
 - **드롭이 늦게 오면 박 단위로 잘라 붙인다.** 15초 릴스에서 드롭을 3초에 요청했는데 두 시드 모두 7.8초에 나온 사례가 있다. 분석 결과의 박 시각을 보고, 같은 박 위상(마디 시작끼리)에서 자른다.
 
 ```bash
-python3 scripts/music_tools.py splice audio/music/music.mp3 audio/music/music_edit.wav \
+python3 $S/music_tools.py splice audio/music/music.mp3 audio/music/music_edit.wav \
   --segments 0-3.90,7.78-19.5 --snap audio/music/analysis.json      # 빌드업 앞부분 + 드롭부터 → 드롭이 약 3.9초로 당겨짐
-python3 scripts/music_tools.py analyze audio/music/music_edit.wav   # 다시 분석해 장면 경계를 맞춘다
+python3 $S/music_tools.py analyze audio/music/music_edit.wav   # 다시 분석해 장면 경계를 맞춘다
 ```
 
 ## 효과음
 
 ```bash
-python3 scripts/eleven.py sfx-kit audio/sfx --names impact,whoosh,riser,logo_hit,glitch,ui_blip   # ElevenLabs
-python3 scripts/synth_music.py sfx audio/sfx --names impact,whoosh,riser,logo_hit                 # 합성(무료, 즉시)
+python3 $S/eleven.py sfx-kit audio/sfx --names impact,whoosh,riser,logo_hit,glitch,ui_blip   # ElevenLabs
+python3 $S/synth_music.py sfx audio/sfx --names impact,whoosh,riser,logo_hit                 # 합성(무료, 즉시)
 ```
 
-프리셋 이름과 프롬프트는 `assets/sfx_presets.json`에 있다: sub_boom, impact, braam, logo_hit, final_hit, riser, reverse_swell, whoosh, whoosh_deep, glitch, shimmer, ui_blip, ui_ticks, typing, stamp, shutter, counter, heartbeat, clock_tick, crowd, pop, ding, chime, drone. 새 효과음은 `eleven.py sfx "prompt" out.mp3 --dur 2`로 만든다. 길이는 0.5~30초다.
+프리셋 이름과 프롬프트는 `$S/../assets/sfx_presets.json`에 있다: sub_boom, impact, braam, logo_hit, final_hit, riser, reverse_swell, whoosh, whoosh_deep, glitch, shimmer, ui_blip, ui_ticks, typing, stamp, shutter, counter, heartbeat, clock_tick, crowd, pop, ding, chime, drone. 새 효과음은 `eleven.py sfx "prompt" out.mp3 --dur 2`로 만든다. 길이는 0.5~30초다.
 
 배치 원칙:
 
@@ -185,7 +185,7 @@ python3 scripts/synth_music.py sfx audio/sfx --names impact,whoosh,riser,logo_hi
 ## 믹스 기준
 
 ```bash
-python3 scripts/mix.py <프로젝트>/timeline.json
+python3 $S/mix.py <프로젝트>/timeline.json
 ```
 
 | 항목 | 기준 |
