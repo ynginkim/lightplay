@@ -55,7 +55,7 @@ python3 $S/render_pieces.py --dir <프로젝트>/reel --out <프로젝트>/out/v
 
 gain·덕킹·리버브처럼 오디오만 바뀌었을 때 쓴다. 영상 스트림은 재사용한다.
 
-1. `python3 $S/mix.py <프로젝트>/timeline.json`(필요한 옵션과 함께)으로 믹스를 다시 만든다.
+1. 줄별 `gain_db`처럼 `script.json`의 값을 고쳤으면 prepare-video-audio의 `timeline.py` 명령을 먼저 다시 실행한다(그 값이 `timeline.json`으로 옮겨진다). 그다음 `python3 $S/mix.py <프로젝트>/timeline.json`(필요한 옵션과 함께)으로 믹스를 다시 만든다.
 2. 무음 렌더 `out/video.mp4`가 있으면 위 `finish.py` 명령을 그대로 다시 돌린다.
 3. 정리로 `out/video.mp4`가 지워졌으면 보존된 마스터 `out/<제목>_<길이>s.mp4`를 `--video`로 쓴다. 마스터의 영상 스트림은 무음 렌더와 같다. 이때 `--name`을 `"<제목>_<길이>s_r2"`처럼 바꿔 같은 `out/`에 마감한다. 입력과 같은 이름으로 출력하면 읽는 중인 파일을 덮어쓴다.
 4. 아래 자동 검수를 새 파일로 돌린다. 기존 납품본을 새 파일로 바꿀지는 사용자가 정한다.
