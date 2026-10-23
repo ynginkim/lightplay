@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "language": "ko",
+  "entry_policy": {
+    "showreel-mode": true
+  },
+  "adapters": [
+    {
+      "skill": "resolve-showreel-tools",
+      "consumers": [
+        "plan-video",
+        "prepare-video-audio",
+        "build-video-scenes",
+        "critique-video",
+        "deliver-video"
+      ]
+    }
+  ],
+  "portability": {
+    "paths": [
+      "skills/*/SKILL.md",
+      "skills/*/playbooks/*.md",
+      "skills/*/references/*.md"
+    ],
+    "forbidden": [
+      ".claude/skills/showreel",
+      "tools/sync.sh",
+      "op55 스킬을 불러",
+      "$O/../SKILL.md"
+    ],
+    "exceptions": {},
+    "transitions": {
+      "skills/resolve-showreel-tools/SKILL.md": {
+        "reason": "op55가 기준 커밋 828990b에서 skill 하나라서 op55 문서를 $O/../SKILL.md로 읽는다",
+        "close_when": "op55가 op55-compose·op55-render·op55-verify·resolve-op55-tools로 변환되면 이 경로를 leaf Read와 resolve-op55-tools/scripts로 바꾸고 transition을 지운다"
+      }
+    }
+  },
+  "migration": {
+    "rewritten": [
+      "skills/showreel-mode/SKILL.md",
+      "skills/showreel-mode/playbooks/create-video.md",
+      "skills/showreel-mode/playbooks/revise-video.md",
+      "skills/resolve-showreel-tools/SKILL.md",
+      "skills/resolve-showreel-tools/references/contract.md"
+    ],
+    "pending": [
+      {
+        "id": "M01",
+        "path": "skills/plan-video/SKILL.md"
+      },
+      {
+        "id": "M02",
+        "path": "skills/plan-video/references/brief.md"
+      },
+      {
+        "id": "M03",
+        "path": "skills/plan-video/references/story.md"
+      },
+      {
+        "id": "M04",
+        "path": "skills/prepare-video-audio/SKILL.md"
+      },
+      {
+        "id": "M05",
+        "path": "skills/prepare-video-audio/references/audio.md"
+      },
+      {
+        "id": "M06",
+        "path": "skills/build-video-scenes/SKILL.md"
+      },
+      {
+        "id": "M07",
+        "path": "skills/build-video-scenes/references/images.md"
+      },
+      {
+        "id": "M08",
+        "path": "skills/build-video-scenes/references/design.md"
+      },
+      {
+        "id": "M09",
+        "path": "skills/build-video-scenes/references/engine.md"
+      },
+      {
+        "id": "M10",
+        "path": "skills/build-video-scenes/references/techniques.md"
+      },
+      {
+        "id": "M11",
+        "path": "skills/critique-video/SKILL.md"
+      },
+      {
+        "id": "M12",
+        "path": "skills/critique-video/references/qa.md"
+      },
+      {
+        "id": "M13",
+        "path": "skills/deliver-video/SKILL.md"
+      },
+      {
+        "id": "M14",
+        "path": "skills/resolve-showreel-tools/scripts"
+      },
+      {
+        "id": "M15",
+        "path": "skills/resolve-showreel-tools/assets"
+      },
+      {
+        "id": "M16",
+        "path": "skills/resolve-showreel-tools/LICENSE"
+      }
+    ]
+  },
+  "copies": [],
+  "command_snapshots": []
+}

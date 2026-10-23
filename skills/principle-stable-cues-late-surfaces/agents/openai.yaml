@@ -1,0 +1,6 @@
+interface:
+  display_name: "principle-stable-cues-late-surfaces"
+  short_description: "큐와 격자를 지키고 소비값이 바뀔 때만 다시 렌더하는 원칙입니다"
+  default_prompt: "$principle-stable-cues-late-surfaces를 적용해 이 판단을 다시 검토해 주세요."
+policy:
+  allow_implicit_invocation: false

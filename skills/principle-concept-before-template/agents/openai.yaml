@@ -1,0 +1,6 @@
+interface:
+  display_name: "principle-concept-before-template"
+  short_description: "화면을 도구 목록이 아니라 주제에서 고르게 하는 원칙입니다"
+  default_prompt: "$principle-concept-before-template를 적용해 이 판단을 다시 검토해 주세요."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,6 @@
+interface:
+  display_name: "plan-video"
+  short_description: "요청 확인, 콘셉트 비교, 조사, 스토리보드와 원고를 만듭니다"
+  default_prompt: "$plan-video를 사용해 이 영상 프로젝트의 해당 작업을 해 주세요."
+policy:
+  allow_implicit_invocation: false

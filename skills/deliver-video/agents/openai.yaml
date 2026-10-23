@@ -1,0 +1,6 @@
+interface:
+  display_name: "deliver-video"
+  short_description: "최종 렌더·믹스·마감·자동 검수와 납품 보고를 합니다"
+  default_prompt: "$deliver-video를 사용해 이 영상 프로젝트의 해당 작업을 해 주세요."
+policy:
+  allow_implicit_invocation: false

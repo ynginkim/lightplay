@@ -1,0 +1,6 @@
+interface:
+  display_name: "build-video-scenes"
+  short_description: "이미지와 스타일 프레임을 만들고 장면 코드를 작성합니다"
+  default_prompt: "$build-video-scenes를 사용해 이 영상 프로젝트의 해당 작업을 해 주세요."
+policy:
+  allow_implicit_invocation: false

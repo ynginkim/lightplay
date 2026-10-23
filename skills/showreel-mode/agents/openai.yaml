@@ -1,0 +1,6 @@
+interface:
+  display_name: "showreel-mode"
+  short_description: "한국어 모션그래픽 영상을 콘셉트부터 납품까지 만들고 고칩니다"
+  default_prompt: "$showreel-mode로 요청한 모션그래픽 영상을 만들어 주세요."
+policy:
+  allow_implicit_invocation: true
