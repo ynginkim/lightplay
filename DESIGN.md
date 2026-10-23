@@ -1,6 +1,6 @@
 # motion-graphic-skills 설계
 
-Status: draft. 이식을 마쳤고 설치 smoke·dry-run·CI 결과는 다음 커밋에서 반영한다.
+Status: implemented. 구조·설치·정적 흐름은 검증했고 실제 제작 품질은 unverified다(아래 "검증 기록"과 "확인하지 못한 것").
 
 한 줄 철학: 주제에서 콘셉트를 세우고, 화면은 렌더한 증거로 판정하며, 오디오와 화면은 이름 붙은 큐로 묶어 늦은 수정을 싸게 만든다.
 
@@ -107,6 +107,28 @@ leaf skill과 principle의 자동 호출은 `false`다.
 | S11 생성 문서·링크 드리프트 | 적용 |
 | S12 push CI | 적용 |
 
+## 검증 기록
+
+자세한 표와 판정 원문은 [검증 기록](docs/validation.md)에 있다.
+
+| 층 | 결과 | 근거와 한계 |
+| --- | --- | --- |
+| 구조 | PASS | `check.py` 오류·경고 0, `selftest.py` 49개, 조건부 검사 오류 주입 5건 실패 확인 |
+| 설치 | PASS(로컬 경로) | 임시 Git 폴더에 `npx skills add` 복사 설치, 10개 skill, 두 하네스 경로에서 playbook·참조 130개 열람. GitHub 형식 설치는 미확인 |
+| CI | PASS(9028c20, a723dde), FAIL(dd967a3) | 골격 커밋은 원본 루트 `SKILL.md`가 남아 설치기가 skill 하나로 설치해 실패. 이후 해소 |
+| 정적 dry-run | 회귀 0 | 별도 판정자 2라운드. 라운드 1 회귀 1건(시나리오 7)을 a723dde에서 고치고 새 판정자가 재판정 |
+| 실제 제작·청취 | unverified | 이번 범위에서 실행 금지 |
+
+## 이름
+
+mode 이름은 일단 `showreel-mode`다. 확정은 사용자 결정이다. 같은 프로젝트에 설치되는 skill끼리 이름이 겹치지 않는지만 보면 되므로 저장소 검색은 하지 않았다.
+
+| 후보 | 뜻 | 아쉬운 점 |
+| --- | --- | --- |
+| `showreel-mode`(현재, 추천) | 출발한 skill과 이어지고 기존 사용자가 알아봄 | 쇼릴 말고 홍보·교육 영상도 만드는데 이름이 좁아 보임. 예전 `showreel` skill과 함께 설치하면 같은 요청을 두고 경쟁 |
+| `motion-graphic-mode` | 저장소 이름과 같고 범위를 그대로 말함 | 길다 |
+| `motion-video-mode` | 코드로 만드는 영상 전반 | 실사 편집까지 하는 것처럼 읽힐 수 있음 |
+
 ## 기본값과 사용자 결정
 
 | ID | 값 | 적용 범위 |
@@ -125,4 +147,8 @@ leaf skill과 principle의 자동 호출은 `false`다.
 | 앱 메뉴 표시와 자연어 진입 | unverified | 설치본을 새 Claude Code·Codex 세션에서 열어 mode 진입과 leaf 명시 호출 확인 |
 | op55 leaf 변환 | 대기 | op55가 op55-compose·op55-render·op55-verify·resolve-op55-tools로 변환되면 prepare-video-audio와 adapter의 op55 경로를 바꾸고 transition 삭제 |
 | op55 변경 후 재정렬 | 대기 | op55 변경 작업(leaf 변환 포함)이 끝난 뒤 새 HEAD의 파일 계약·leaf 이름을 기준 커밋 `828990b`와 대조하고 transition을 닫거나 갱신 |
-| 이식·검증 결과 | 진행 중 | 이식 커밋, install smoke, dry-run, Actions 결과를 이 문서에 반영 |
+| GitHub 형식 설치 | unverified | 저장소 읽기 권한이 있는 계정으로 빈 Git 프로젝트에서 `npx skills add ynginkim/motion-graphic-skills -a claude-code -a codex`를 실행하고 10개 설치·형제 참조 확인 |
+| 새 세션 경로 시험(진입·원문 todo·leaf 직접 호출) | unverified | 경로 시험 예산이 승인되면 내부 검증 skill을 만들고 새 Claude·Codex 세션 각 1회로 mode 진입, playbook Read, 원문 단계 todo, leaf 직접 호출의 제약 유지를 확인 |
+| 복원 분기의 미추적 엔진 파일 | 후속(dry-run 라운드 2 관찰 1) | 다음 adapter 수정 때 "Git이 추적하지 않는 파일은 Git 밖과 같이 보관본을 쓴다"를 넣고 시나리오 7 재판정 |
+| `.restore/`의 프로젝트 커밋 혼입 | 후속(라운드 2 관찰 5) | 다음 adapter 수정 때 보관 폴더를 프로젝트 커밋에서 빼는 방법(작업 폴더 `.gitignore` 안내 또는 확인 단계)을 정하고 재판정 |
+| 엔진 자산 변경 뒤 복원 분류 | 후속(라운드 2 관찰 3) | `assets/engine`을 바꾸는 커밋에서, 이전 엔진으로 덮인 파일을 미커밋 수정으로 잘못 분류하지 않는지 복원 분기를 다시 검토 |

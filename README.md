@@ -41,9 +41,9 @@ npx skills add ynginkim/op55 -a claude-code
 
 ## 검증 수준
 
-구조 검사(`scripts/check.py`), 검사기 오류 주입(`scripts/selftest.py`), 원본 명령 스냅샷 대조를 통과했다. 설치 smoke, 원본과의 정적 호출 흐름 대조(dry-run), 실제 영상 제작 품질은 [DESIGN.md](DESIGN.md)의 검증 기록과 "확인하지 못한 것"에 따로 적는다. 실제 영상·음악 품질은 사람이 보고 듣기 전까지 확인되지 않은 상태다.
+구조 검사(`scripts/check.py`), 검사기 오류 주입(`scripts/selftest.py`), 원본 명령 스냅샷 대조, 임시 Git 폴더 설치 smoke, GitHub Actions를 통과했다. 원본 showreel과의 정적 호출 흐름 대조(dry-run, 시나리오 8개)는 별도 판정자 2라운드에서 회귀 0건이다. 기록은 [docs/validation.md](docs/validation.md)에 있다. 실제 영상·음악 품질은 만들어 보고 사람이 보고 듣기 전까지 확인되지 않은 상태다.
 
-설계는 [DESIGN.md](DESIGN.md), 이식 기록은 [docs/migration.md](docs/migration.md)에 있다.
+사용법은 [docs/guide/README.md](docs/guide/README.md), 설계는 [DESIGN.md](DESIGN.md), 이식 기록은 [docs/migration.md](docs/migration.md)에 있다.
 
 ## 출처와 라이선스
 
