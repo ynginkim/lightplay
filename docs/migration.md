@@ -1,5 +1,7 @@
 # 이식 장부
 
+이 장부는 최초 이식의 기록이다. 현재 op55 경계는 [음악 검증 기록](music-validation.md)의 후속 정리를 따른다. 과거 test mix 인자는 현재 실행 지침이 아니다.
+
 showreel 단일 skill(`307b3fd`, 이 저장소 `374df70`)을 showreel-mode skillset으로 옮긴 기록이다. 상태는 모두 "완료"이며 `skillset.json`의 `migration.pending`은 0건이다. 다시 만들려면 `git show 374df70:<원본 경로>`와 새 파일을 비교한다.
 
 ## 원본 SKILL.md 대응

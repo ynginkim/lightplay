@@ -54,7 +54,7 @@
 | `script.json` | plan-video(원고), prepare-video-audio(음악·효과음) | `narrate.py`, `timeline.py`, `qa_check.py --script` |
 | `audio/vo/*.mp3`와 정렬 정보 | `narrate.py` | `timeline.py`, `mix.py` |
 | 음악 파일·`analysis.json`, 제공자별 원본 | prepare-video-audio가 선택한 음악 경로 | `timeline.py`, `mix.py`, 크레딧 |
-| `timeline.json` | `timeline.py` | `mix.py`, `finish.py`, `motion_check.py`, `qa_check.py`, op55 `verify.py --mix` |
+| `timeline.json` | `timeline.py` | `mix.py`, `finish.py`, `motion_check.py`, `qa_check.py` |
 | `reel/timeline.js` | `timeline.py`(사람이 고치지 않는다) | 장면 코드(`window.TL`) |
 | `reel/` 장면 코드·`assets/` | build-video-scenes | `render.mjs`, `render_pieces.py` |
 | `out/video.mp4`, `audio/mix.wav` | `render.mjs`, `mix.py` | `finish.py` |
@@ -74,6 +74,6 @@
 | op55 전용 원본 | `score.mjs`, `music.meta.json`. meta에는 정확한 격자·섹션·강세·빈틈·credits가 있다. 현재 op55 음악의 크레딧을 영상과 보고에 넣는다. 다른 경로에 이 파일을 요구하지 않는다 |
 | API·내장 합성 원본 | `spec.json`, API는 보존할 생성 원본과 plan·모델·사용량 기록. 출처·크레딧은 제작노트로 전달한다 |
 | 화면의 음악 에너지 | `timeline.py`가 `music.file`의 WAV에서 소리 크기 곡선을 다시 계산해 `reel/timeline.js`에 넣는다. `analysis.json`의 `energy`를 그대로 쓰지 않는다 |
-| 믹스 | `mix.py`가 음악을 -16 LUFS로 맞춘 뒤 gain·덕킹을 적용한다. op55 마스터 음량과 영상 목표 음량은 별개다 |
+| 믹스 | MGS의 `mix.py`가 음악을 -16 LUFS로 맞춘 뒤 gain·덕킹을 적용하고 나레이션 대 배경 표를 만든다. `--verified-music`으로 검수한 WAV와 타임라인의 음악을 대조한다. 믹스 실패·빈 표·누락 줄은 미측정이다. op55 마스터 음량과 영상 목표 음량은 별개다 |
 
 `timeline.py`는 빠진 필드에 기본값을 쓰는 부분이 있다. 그래서 음악을 받을 때 `../prepare-video-audio/references/music.md`의 수락 기준으로 실제 파일·유효 JSON·유한한 수와 배열·길이·경로를 확인한다. op55의 정확한 격자는 그대로 쓰고, API·내장 합성은 최종 파일을 분석한다. 추정 격자에 정확한 박·마디 정렬을 보장하지 않는다. 하나라도 어긋나면 중단하고 원인을 돌려준다.

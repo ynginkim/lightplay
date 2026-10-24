@@ -13,11 +13,11 @@ disable-model-invocation: true
 ## S와 O
 
 - **S**: 이 SKILL.md를 연 실제 경로의 폴더 안 scripts 폴더의 절대 경로다. `test -f "$S/preflight.py"`로 확인한다.
-- **O**: op55를 쓸 때만 확인하는 scripts 절대 경로다. `preflight.py`는 `OP55_SCRIPTS`, 이 skill 옆, 작업 폴더와 상위 폴더의 `.claude/skills`·`.agents/skills`, 두 하네스의 홈 설치 순서로 찾는다. 각 위치에서 현재 `resolve-op55-tools`와 예전 `op55` 이름을 확인한다. 이는 발견을 위한 후보이며 특정 커밋을 요구하지 않는다.
+- **O**: op55를 쓸 때만 확인하는 scripts 절대 경로다. `preflight.py`는 `OP55_SCRIPTS`, 이 skill 옆, 작업 폴더와 상위 폴더의 `.claude/skills`·`.agents/skills`, 두 하네스의 홈 설치 순서로 찾는다. 각 위치에서 `resolve-op55-tools/scripts`만 확인한다. 옛 `op55/scripts` 배치는 사용하지 않는다. 이는 발견을 위한 후보이며 특정 커밋을 요구하지 않는다.
 - 지정한 `OP55_SCRIPTS`가 유효하지 않으면 다른 엔진으로 자동 대체하지 않는다. 설치본의 현재 문서·도구 위치를 읽고 `O`를 정한다. preflight가 찾지 못하면 사용자에게 설치 경로를 묻거나 설치를 안내한다. 음악 경로 선택은 prepare-video-audio가 맡는다. op55가 없어도 이 skillset의 다른 음악 경로를 쓸 수 있다.
 - 셸 변수는 명령 사이에 남지 않는다. 명령마다 확인한 절대 경로를 그대로 쓰거나 같은 명령 줄 앞에 `S=… O=…`를 붙인다. leaf 문서의 `$S`, `$O`는 이 두 값을 뜻한다.
-- 자식 명령에 경로를 명시한다. 환경 점검에는 `OP55_SCRIPTS`를, op55의 test mix에는 `SHOWREEL_SCRIPTS`와 `--mix-py`를 넘긴다. 예전 설치 위치를 찾는 스크립트 안의 대체 탐색에 기대지 않는다. 전역 환경 변수와 사용자 설정은 바꾸지 않는다.
-- 설치 안내는 `npx skills@1.7.4 add ynginkim/op55 -a claude-code -a codex`다. 설치·사운드뱅크 다운로드는 사용자가 선택한다. 뱅크가 없어도 합성 악보만 쓸 수 있는지는 설치본 문서로 확인한다. 설치 경로·명령·버전은 prepare-video-audio가 읽는 현재 op55 문서가 정한다.
+- 환경 점검에 확인한 `OP55_SCRIPTS`를 명시한다. 나레이션 대 배경 검사는 이 skillset의 `mix.py`가 소유한다. op55에는 영상 믹서 경로나 타임라인을 넘기지 않는다. 전역 환경 변수와 사용자 설정은 바꾸지 않는다.
+- 설치 안내는 `npx skills@1.7.4 add ynginkim/op55 -a claude-code -a codex`다. 옛 사본은 새 설치 후 `npx skills@1.7.4 remove op55`로 지우도록 안내한다. 전역 사본이면 `-g`를 붙인다. 제거를 자동 실행하지 않는다. 설치·사운드뱅크 다운로드는 사용자가 선택한다. 뱅크가 없어도 합성 악보만 쓸 수 있는지는 설치본 문서로 확인한다. 설치 경로·명령·버전은 prepare-video-audio가 읽는 현재 op55 문서가 정한다.
 
 ## 환경 점검
 
@@ -27,7 +27,7 @@ disable-model-invocation: true
 OP55_SCRIPTS=$O python3 $S/preflight.py
 ```
 
-op55를 사용할 때는 위 명령에 `OP55_SCRIPTS`를 전달한다. op55를 사용하지 않으면 이 환경변수 없이 같은 점검을 실행한다. 결과의 "쓸 수 있는 경로"를 돌려준다. `caps.music`은 발견한 scripts 경로 또는 null이다. 경로 발견은 문서·뱅크·음악 품질 확인을 뜻하지 않는다. `caps.music_api`는 키 없음·Free 플랜이면 false, 키가 있지만 Music 사용 가능 여부가 미확인이면 null이다. TTS 조회 권한 부족으로 Music 키까지 무효라고 판단하지 않는다.
+op55를 사용할 때는 위 명령에 `OP55_SCRIPTS`를 전달한다. op55를 사용하지 않으면 이 환경변수 없이 같은 점검을 실행한다. 결과의 "쓸 수 있는 경로"를 돌려준다. `caps.music`은 발견한 scripts 경로 또는 null이다. 경로 발견은 문서·뱅크·음악 품질 확인을 뜻하지 않는다. `caps.op55_version`은 도구 skill의 metadata.version, 없으면 `render.mjs --version`에서 읽은 버전 또는 null이다. null이면 실제 경로와 "버전 미확인"을 제작노트에 남긴다. 버전 숫자로 실행을 막지 않고 실제 산출물의 수락 기준으로 판정한다. `caps.music_api`는 키 없음·Free 플랜이면 false, 키가 있지만 Music 사용 가능 여부가 미확인이면 null이다. TTS 조회 권한 부족으로 Music 키까지 무효라고 판단하지 않는다.
 
 - **codex CLI나 이미지 스킬이 없을 때**: codex-image·photoreal·codex-cli 스킬은 https://github.com/revfactory/skills 에 있다. 출력된 설치 명령을 사용자에게 안내한다. 설치하지 않으면 코드로 그린 그래픽과 사용자 제공 사진으로 구성한다. 사용자가 "realphoto"라고 부르는 스킬의 실제 이름은 `photoreal`이다.
 - **ElevenLabs 키가 없을 때**: 나레이션이나 선택한 Music API에 키가 필요하면 발급·로컬 설정 절차를 안내한다. 키를 받기 전에는 op55 또는 내장 합성·화면 제작을 진행할 수 있다. TTS용 키의 Music 권한은 별도로 확인한다. 키 원문은 받거나 출력하지 않는다.
