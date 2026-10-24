@@ -4,6 +4,9 @@ Changes are grouped using [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 
 ## [Unreleased]
 
+### Changed
+- Upgrade the local renderer's Playwright dependency from 1.63.0 to 1.64.1.
+
 ### Fixed
 - deliver-video audio-only refinish no longer reruns `finish.py` under the master's name. It always writes a new name (`_r2`), so the existing master is kept until the new QA passes.
 - deliver-video audio-only refinish now compares the per-line narration-over-bed table from `mix.py` with the previous mix. `qa_check.py` does not check that table, so a louder bed could pass QA.
