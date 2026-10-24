@@ -120,7 +120,7 @@ python3 $S/synth_music.py sfx audio/sfx --names impact,whoosh,riser,logo_hit    
 ## 믹스 기준
 
 ```bash
-python3 $S/mix.py <프로젝트>/timeline.json
+python3 $S/mix.py <프로젝트>/timeline.json --verified-music <검수한-WAV>
 ```
 
 | 항목 | 기준 |
