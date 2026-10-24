@@ -52,10 +52,11 @@ Status: implemented. 구조·설치·정적 흐름은 검증했고 실제 제작
 
 - 실행 자원(`scripts/`, `assets/`)은 `resolve-showreel-tools`가 원래 상대 배치(`scripts/../assets`) 그대로 한 벌 소유한다. 다른 leaf는 제목 바로 아래 `Read ../resolve-showreel-tools/SKILL.md`로 adapter를 읽고 그 경로를 쓴다.
 - 기술별 reference는 담당 leaf가 소유한다. 다른 leaf가 필요하면 그 경로를 읽는다(`qa.md`는 critique-video, 믹스 기준이 든 `audio.md`는 prepare-video-audio).
+- op55 지원 기준은 0.2.0 이상과 resolve-op55-tools 구조다. 0.2.0은 아직 릴리스 전이며 태그가 예정돼 있다. 현재 main의 같은 구조처럼 버전 정보를 제공하지 않는 설치본은 실제 경로와 "버전 미확인"을 기록한다. 버전 숫자로 실행을 차단하지 않고 실제 파일의 수락 기준으로 판정한다.
 - 공유 계약(결과물 기준, 기술 기본값, 작업 위치, 프로젝트 파일, 음악 경계 필드)은 `resolve-showreel-tools/references/contract.md` 한 곳에 둔다.
 - 최초 이식의 정적 dry-run은 op55 `828990bb00ed1b887bb29d79710006c3c4bec526`을 기준으로 했다. 현재 실행은 특정 커밋을 요구하지 않고 설치된 op55 문서·도구·파일 계약을 확인한다. 사용 경로와 확인 가능한 버전은 제작노트에 남긴다.
 - 음악은 op55 기본, 선택한 ElevenLabs Music BYOK, 내장 합성 fallback의 세 경로다. 선택·실패·수락 기준은 `skills/prepare-video-audio/references/music.md`가 소유한다. 공통 계약은 음악 파일·analysis와 출처다. 악보·op55 meta는 op55에만 요구한다. 옛 단일 skill 문서 경로를 허용하던 transition 두 건은 제거했다.
-- 스크립트 이동 뒤 예전 설치 경로 탐색에 기대지 않는다. adapter가 `S`(이 skillset의 scripts)와 `O`(op55 scripts)의 실제 절대 경로를 확인하고, 자식 명령에 `OP55_SCRIPTS`, `SHOWREEL_SCRIPTS`, `--mix-py`를 명시한다. 전역 env와 사용자 설정은 바꾸지 않는다.
+- 스크립트 이동 뒤 예전 설치 경로 탐색에 기대지 않는다. adapter가 `S`(이 skillset의 scripts)와 `O`(op55 scripts)의 실제 절대 경로를 확인하고, 환경 점검에 `OP55_SCRIPTS`를 명시한다. 나레이션 대 배경 검사는 MGS의 `mix.py`가 소유하며 op55에 믹서 경로나 타임라인을 전달하지 않는다. 전역 env와 사용자 설정은 바꾸지 않는다.
 
 ## 이식 결과
 

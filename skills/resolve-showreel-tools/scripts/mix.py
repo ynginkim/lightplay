@@ -3,7 +3,7 @@
 
 사용법
   mix.py <project>/timeline.json [--out audio/mix.wav] [--music-db -8] [--duck 0.75] [--sfx-duck 0.45]
-         [--vo-db 0] [--hall 0] [--target -14] [--mute music,sfx]
+         [--verified-music 검수한.wav] [--vo-db 0] [--hall 0] [--target -14] [--mute music,sfx]
 
 처리 순서
   1) 나레이션: 줄마다 EQ·컴프레서(말소리 또렷하게) → 타임라인 위치(clip_start)에 배치 → 선택적 홀 리버브
@@ -117,6 +117,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("timeline")
     ap.add_argument("--out")
+    ap.add_argument("--verified-music", help="검수한 WAV 경로. timeline의 music.file과 같은 파일인지 확인")
     ap.add_argument("--music-db", type=float)
     ap.add_argument("--duck", type=float)
     ap.add_argument("--sfx-duck", type=float, default=0.45)
@@ -131,6 +132,12 @@ def main():
     tlp = Path(a.timeline).resolve()
     proj = tlp.parent
     tl = json.loads(tlp.read_text())
+    music_cfg = tl.get("music") or {}
+    if a.verified_music:
+        verified = Path(a.verified_music).resolve()
+        selected = music_cfg.get("file")
+        if not verified.is_file() or not selected or (proj / selected).resolve() != verified:
+            ap.error("미측정: 검수한 WAV와 timeline music.file이 같은 파일인지 확인할 수 없음")
     dur = float(tl["duration"])
     N = int(dur * SR)
     mute = set(x for x in a.mute.split(",") if x)
@@ -138,7 +145,6 @@ def main():
     if not out.is_absolute():
         out = proj / out
     out.parent.mkdir(parents=True, exist_ok=True)
-    music_cfg = tl.get("music") or {}
     music_db = a.music_db if a.music_db is not None else float(music_cfg.get("gain_db", -8))
     duck = a.duck if a.duck is not None else float(music_cfg.get("duck", 0.75))
 
@@ -240,6 +246,7 @@ def main():
     write(f"{stem}_premaster.wav", mix)
     write(f"{stem}_vo.wav", vo)
     write(f"{stem}_bed.wav", bed)
+    measured_lines = 0
     if tl.get("vo") and bed.any():
         vb, bb = band(vo, 300, 4000), band(bed, 300, 4000)
         print(f"{'id':6s} {'VO대배경':>8s}  (말소리 대역 300~4000Hz, 9dB↑ 충분 · 6dB↓ 위험)")
@@ -250,6 +257,9 @@ def main():
             d = rms_db(vb[s:e]) - rms_db(bb[s:e])
             mark = "✓" if d >= 9 else ("△" if d >= 6 else "✗")
             print(f"{v['id']:6s} {d:7.1f}dB {mark} {v.get('sub', '')[:40]}")
+            measured_lines += 1
+    if not measured_lines or measured_lines < len(tl.get("vo", [])):
+        print(f"미측정: 나레이션 대 배경 줄별 표 {measured_lines}/{len(tl.get('vo', []))}줄. 빈 표나 누락 줄을 통과로 보지 않는다.")
 
     if not tl.get("vo") and tl.get("sfx") and music.any():
         # 나레이션이 없으면 효과음이 음악에 묻히지 않는지 본다(타격 직후 0.3초 RMS 비교)

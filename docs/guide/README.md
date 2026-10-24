@@ -11,7 +11,7 @@ npx skills@1.7.4 add ynginkim/motion-graphic-skills -a claude-code -a codex
 npx skills@1.7.4 add ynginkim/op55 -a claude-code -a codex
 ```
 
-op55를 찾지 못하면 설치 경로를 제공하거나 설치를 선택한다. ElevenLabs Music을 선택하면 [BYOK 안내](../../skills/prepare-video-audio/references/elevenlabs-music.md)에 따라 사용자가 환경변수나 Git에서 제외한 프로젝트 `.env`에 키를 설정한다. 키는 대화에 붙이지 않는다. op55와 API가 모두 사용 불가하면 내장 합성으로 이어간다.
+op55는 resolve-op55-tools 구조를 사용한다. 옛 op55/scripts만 있으면 새로 설치하고 `npx skills@1.7.4 remove op55`로 옛 사본을 정리한다. 전역 사본이면 `-g`를 붙인다. 찾지 못하면 설치 경로를 제공하거나 설치를 선택한다. 제작노트에는 preflight가 읽은 버전과 경로를 남기고, 버전이 없으면 "버전 미확인"이라고 적는다. ElevenLabs Music을 선택하면 [BYOK 안내](../../skills/prepare-video-audio/references/elevenlabs-music.md)에 따라 사용자가 환경변수나 Git에서 제외한 프로젝트 `.env`에 키를 설정한다. 키는 대화에 붙이지 않는다. op55와 API가 모두 사용 불가하면 내장 합성으로 이어간다.
 
 같은 작업 폴더에 예전 `showreel` skill이 설치돼 있으면 두 skill이 같은 영상 요청을 두고 경쟁한다. 한 작업 폴더에는 하나만 둔다.
 
@@ -49,7 +49,7 @@ python3 scripts/install_smoke.py . --dest <새 빈 폴더>   # 임시 Git 폴더
 ## 설계 이유
 
 - **mode 하나, playbook 둘.** 새 영상과 수정은 출발 상태와 다시 만들 범위가 다르다. 장르(쇼릴·브랜드·교육)는 절차가 같고 기준만 다르므로 playbook을 나누지 않았다.
-- **adapter 하나가 도구를 소유.** 스크립트와 엔진을 한 벌만 두고, 다른 skill은 adapter가 확인한 실제 경로로 실행한다. 예전 설치 위치를 추측하는 탐색에 기대지 않도록 op55 경로와 `mix.py` 경로를 자식 명령에 명시한다.
+- **adapter 하나가 도구를 소유.** 스크립트와 엔진을 한 벌만 두고, 다른 skill은 adapter가 확인한 실제 경로로 실행한다. 확인한 op55 경로를 환경 점검에 명시한다. 검수한 WAV와 타임라인 음악의 일치 여부, 나레이션 대 배경은 MGS 자체 믹서가 확인한다.
 - **hard constraint는 leaf마다.** leaf를 직접 불러도 비용·라이선스·삭제 제약이 빠지지 않는다.
 - **op55는 독립.** op55의 내부 작곡·렌더 절차는 현재 설치본 문서를 따른다. 공통 음악 파일·분석 계약으로 연결하고 op55 진입을 중첩하지 않는다.
 

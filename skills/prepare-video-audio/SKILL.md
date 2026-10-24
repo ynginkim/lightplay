@@ -34,6 +34,7 @@ Read references/music.md. 음악 경로를 정하고 해당 절차로 음악과 
 python3 $S/narrate.py <프로젝트>/script.json --stt            # 나레이션이 있을 때. ✗ 줄은 고쳐서 다시
 python3 $S/eleven.py sfx-kit <프로젝트>/audio/sfx --names impact,riser   # 범용 프리셋이 필요한 곳만(합성: synth_music.py sfx). 구간 재질에 맞는 소리는 eleven.py sfx "prompt"
 python3 $S/timeline.py <프로젝트>/script.json --music-analysis audio/music/analysis.json
+python3 $S/mix.py <프로젝트>/timeline.json --verified-music <검수한-WAV>
 ```
 
 - op55는 악보 격자에 구간 경계·큰 히트를 맞춘다. API·내장 합성의 분석이 불확실하면 확인한 시각과 장면 큐를 쓴다. 근거 없이 4박자나 정확한 다운비트를 가정하지 않는다.
@@ -47,7 +48,7 @@ python3 $S/timeline.py <프로젝트>/script.json --music-analysis audio/music/a
 **principle-judge-rendered-evidence**를 적용한다. 스크립트가 정상 종료해도 표를 읽는다.
 
 - op55는 설치본의 검수 계약을 확인한다. 현재 알려진 `verify.py`는 실패 항목이 있어도 종료 코드를 바꾸지 않는다. ✓·✗·△ 줄과 그림(PNG)을 Read로 본다.
-- op55의 `--mix` 결과에 "showreel mix.py not found"가 나오거나 줄별 표가 비었으면 나레이션 대 배경은 미측정이다. `--mix-py` 경로를 확인하고 다시 돌린다.
+- 음악 경로 세 가지 모두 이 skillset의 `mix.py`로 나레이션 대 배경을 판정한다. `--verified-music`에는 이번에 검수한 WAV 경로를 넘긴다. 타임라인의 음악과 다른 파일이면 믹서가 쓰기 전에 중단한다. 믹스 실패·빈 표·누락 줄은 미측정이다. 나레이션이 없으면 그 사유를 기록하고 해당 검사를 완료 조건에서 제외한다. 나레이션이 있으면 모든 줄을 측정하기 전에는 마감하지 않는다.
 - 음악을 받을 때 `analysis.json`이 있고 유효한 JSON이며 `bpm` 수와 `beats`·`downbeats`·`hits` 배열이 있는지, 길이와 경로가 이 프로젝트의 것인지 확인한다. 어긋나면 타임라인을 만들지 않고 원인을 돌려준다.
 - `timeline.py`는 겹침·길이 초과·큐 누락을 ✗로 알려 주고 실패로 끝난다. 음악·효과음 파일이 없다는 줄은 경고라서 실패로 끝나지 않을 수 있으니 경고 줄도 읽는다.
 

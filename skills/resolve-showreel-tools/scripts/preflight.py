@@ -7,6 +7,7 @@
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -25,8 +26,9 @@ def find_op55():
         for d in [Path.cwd(), *Path.cwd().parents]:
             roots += [d / ".claude/skills", d / ".agents/skills"]
         roots += [Path.home() / ".claude/skills", Path.home() / ".agents/skills"]
-        cands = [root / name / "scripts" for root in roots for name in ("resolve-op55-tools", "op55")]
-    return next((c.resolve() for c in cands if all((c / name).is_file()
+        cands = [root / "resolve-op55-tools/scripts" for root in roots]
+    return next((c.resolve() for c in cands if c.parent.name != "op55" and c.resolve().parent.name != "op55"
+                 and all((c / name).is_file()
                  for name in ("render.mjs", "verify.py", "setup.mjs"))), None)
 
 
@@ -36,6 +38,28 @@ def run(cmd, timeout=20):
         return r.returncode, (r.stdout + r.stderr).strip()
     except Exception as e:
         return 127, str(e)
+
+
+def op55_version(scripts):
+    version_pattern = r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?"
+    try:
+        text = (scripts.parent / "SKILL.md").read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        text = ""
+    frontmatter = re.match(r"\A---\r?\n(.*?)\r?\n---(?:\r?\n|$)", text, re.S)
+    if frontmatter:
+        metadata = re.search(r"(?m)^metadata:[ \t]*\r?\n((?:[ \t]+[^\n]*(?:\n|$)|\r?\n)*)", frontmatter[1])
+        if metadata:
+            lines = [line for line in metadata[1].splitlines() if line.strip() and not line.lstrip().startswith("#")]
+            indent = min((len(line) - len(line.lstrip()) for line in lines), default=0)
+            for line in lines:
+                name, _, value = line.strip().partition(":")
+                value = value.strip().strip("\"'")
+                if len(line) - len(line.lstrip()) == indent and name == "version" and re.fullmatch(version_pattern, value):
+                    return value
+    code, output = run(["node", str(scripts / "render.mjs"), "--version"])
+    version = re.fullmatch(r"op55 (" + version_pattern + r")", output)
+    return version[1] if code == 0 and version else None
 
 
 def main():
@@ -72,11 +96,13 @@ def main():
     swift = bool(shutil.which("swiftc"))
     row("누끼(swiftc, macOS)", swift, "가능" if swift else "불가 — 인물 누끼 없이 진행", "xcode-select --install")
     op55 = find_op55()
+    version = op55_version(op55) if op55 else None
     banks = op55 is not None and run(["node", str(op55 / "setup.mjs"), "--check"])[0] == 0
     row("BGM 스킬(op55)", op55 is not None and banks,
-        f"{op55} (사운드뱅크 {'있음' if banks else '없음'})" if op55 else "없음",
-        "npx skills add ynginkim/op55 -a claude-code" if op55 is None else f"node {op55}/setup.mjs")
+        f"{op55} (op55 {version or '버전 미확인'}, 사운드뱅크 {'있음' if banks else '없음'})" if op55 else "없음 또는 지원하지 않는 옛 설치본",
+        "npx skills@1.7.4 add ynginkim/op55로 설치. 옛 op55 사본은 npx skills@1.7.4 remove op55로 제거(전역이면 -g)" if op55 is None else f"node {op55}/setup.mjs")
     caps["music"] = str(op55) if op55 else None
+    caps["op55_version"] = version
 
     # 이미지 생성
     code, out = run(["codex", "login", "status"])

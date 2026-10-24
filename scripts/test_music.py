@@ -48,9 +48,28 @@ class MusicDiscoveryTests(unittest.TestCase):
         scripts = self.install(self.project / ".agents/skills")
         self.assertEqual(preflight.find_op55(), scripts)
 
-    def test_legacy_project_install(self):
-        scripts = self.install(self.project / ".claude/skills", "op55")
-        self.assertEqual(preflight.find_op55(), scripts)
+    def test_legacy_project_install_is_rejected(self):
+        self.install(self.project / ".claude/skills", "op55")
+        self.assertIsNone(preflight.find_op55())
+
+    def test_explicit_legacy_path_does_not_select_a_modern_copy(self):
+        legacy = self.install(self.home / ".claude/skills", "op55")
+        self.install(self.project / ".agents/skills")
+        os.environ["OP55_SCRIPTS"] = str(legacy)
+        self.assertIsNone(preflight.find_op55())
+
+    def test_legacy_only_install_shows_migration_commands(self):
+        self.install(self.project / ".claude/skills", "op55")
+        output = StringIO()
+        with patch.object(eleven, "api_key", return_value=None), \
+                patch.object(preflight, "run", return_value=(0, "fixture tool")), \
+                patch.object(sys, "argv", ["preflight.py", "--json"]), redirect_stdout(output):
+            preflight.main()
+        report = json.loads(output.getvalue())
+        self.assertIsNone(report["caps"]["music"])
+        guidance = " ".join(report["fix"])
+        self.assertIn("npx skills@1.7.4 add ynginkim/op55", guidance)
+        self.assertIn("npx skills@1.7.4 remove op55", guidance)
 
     def test_home_codex_install(self):
         scripts = self.install(self.home / ".agents/skills")
@@ -75,6 +94,46 @@ class MusicDiscoveryTests(unittest.TestCase):
         scripts = self.install(self.project / ".agents/skills")
         (scripts / "verify.py").unlink()
         self.assertIsNone(preflight.find_op55())
+
+
+class Op55VersionTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.tools = Path(self.tmp.name) / "resolve-op55-tools"
+        self.scripts = self.tools / "scripts"
+        self.scripts.mkdir(parents=True)
+
+    def test_metadata_version_precedes_cli(self):
+        (self.tools / "SKILL.md").write_text('---\nname: resolve-op55-tools\nmetadata:\n  version: "0.2.0"\n---\n')
+        with patch.object(preflight, "run") as run:
+            self.assertEqual(preflight.op55_version(self.scripts), "0.2.0")
+            run.assert_not_called()
+
+    def test_cli_version_without_metadata(self):
+        with patch.object(preflight, "run", return_value=(0, "op55 0.2.0")) as run:
+            self.assertEqual(preflight.op55_version(self.scripts), "0.2.0")
+            self.assertEqual(run.call_args.args[0], ["node", str(self.scripts / "render.mjs"), "--version"])
+
+    def test_old_usage_is_unknown_version(self):
+        with patch.object(preflight, "run", return_value=(2, "usage: render.mjs --score score.mjs")):
+            self.assertIsNone(preflight.op55_version(self.scripts))
+
+    def test_document_body_version_does_not_count_as_metadata(self):
+        (self.tools / "SKILL.md").write_text('---\nname: resolve-op55-tools\n---\nmetadata:\n  version: "9.9.9"\n')
+        with patch.object(preflight, "run", return_value=(2, "usage")):
+            self.assertIsNone(preflight.op55_version(self.scripts))
+
+    def test_nested_metadata_version_uses_cli_instead(self):
+        (self.tools / "SKILL.md").write_text('---\nmetadata:\n  other:\n    version: "9.9.9"\n---\n')
+        with patch.object(preflight, "run", return_value=(0, "op55 0.2.1")):
+            self.assertEqual(preflight.op55_version(self.scripts), "0.2.1")
+
+    def test_blank_line_in_metadata(self):
+        (self.tools / "SKILL.md").write_text('---\nmetadata:\n\n    version: "0.2.0"\n---\n')
+        with patch.object(preflight, "run") as run:
+            self.assertEqual(preflight.op55_version(self.scripts), "0.2.0")
+            run.assert_not_called()
 
 
 class MusicKeyTests(unittest.TestCase):
@@ -187,12 +246,14 @@ class MusicPipelineTests(unittest.TestCase):
                 ["synth_music.py", "music", "audio/music/spec.json", "audio/music/music.wav"],
                 ["music_tools.py", "analyze", "audio/music/music.wav"],
                 ["timeline.py", "script.json", "--music-analysis", "audio/music/analysis.json"],
-                ["mix.py", "timeline.json"],
+                ["mix.py", "timeline.json", "--verified-music", "audio/music/music.wav"],
             ]
             for script, *args in commands:
                 result = subprocess.run([sys.executable, "-B", str(SCRIPTS / script), *args],
                     cwd=project, capture_output=True, text=True, timeout=90)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                if script == "mix.py":
+                    self.assertIn("미측정: 나레이션 대 배경 줄별 표 0/0줄", result.stdout)
             with wave.open(str(music / "music.wav")) as wav:
                 self.assertEqual(wav.getframerate(), 48000)
                 self.assertEqual(wav.getnchannels(), 2)
@@ -206,6 +267,32 @@ class MusicPipelineTests(unittest.TestCase):
             self.assertTrue(timeline["music_tl"]["beats"])
             self.assertTrue((project / "audio/mix.wav").stat().st_size > 1000)
             self.assertTrue((project / "reel/timeline.js").is_file())
+            previous_mix = (project / "audio/mix.wav").read_bytes()
+            other = music / "other.wav"
+            other.write_bytes((music / "music.wav").read_bytes())
+            result = subprocess.run([sys.executable, "-B", str(SCRIPTS / "mix.py"), "timeline.json",
+                "--verified-music", "audio/music/other.wav"], cwd=project, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("미측정", result.stderr)
+            self.assertEqual((project / "audio/mix.wav").read_bytes(), previous_mix)
+            result = subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i",
+                "sine=frequency=1000:duration=8", "-ar", "48000", str(project / "voice.wav")],
+                capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            timeline["vo"] = [{"id": "n001", "clip": "voice.wav", "clip_start": 0, "start": 0, "end": 8}]
+            (project / "timeline.json").write_text(json.dumps(timeline))
+            command = [sys.executable, "-B", str(SCRIPTS / "mix.py"), "timeline.json",
+                "--verified-music", "audio/music/music.wav"]
+            result = subprocess.run(command, cwd=project, capture_output=True, text=True, timeout=90)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("VO대배경", result.stdout)
+            self.assertIn("n001", result.stdout)
+            self.assertNotIn("미측정", result.stdout)
+            timeline["vo"].append({"id": "n002", "clip": "voice.wav", "clip_start": 0, "start": 2, "end": 2})
+            (project / "timeline.json").write_text(json.dumps(timeline))
+            result = subprocess.run(command, cwd=project, capture_output=True, text=True, timeout=90)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("미측정: 나레이션 대 배경 줄별 표 1/2줄", result.stdout)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ Changes are grouped using [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 ## [Unreleased]
 
 ### Changed
+- op55의 공개 출력 계약만 소비하고, WAV 일치 확인과 나레이션 대 배경 검사를 MGS 믹서로 모은다. 옛 설치 이름을 거부하고 사용 버전 또는 버전 미확인을 기록한다.
 - 음악 생성을 op55 런타임 발견 기본, ElevenLabs Music BYOK 선택, 내장 합성 fallback으로 변경한다. 기존 외부 Music API 금지 정책과 op55 커밋 의존을 정리한다.
 - Upgrade the local renderer's Playwright dependency from 1.63.0 to 1.64.1.
 
