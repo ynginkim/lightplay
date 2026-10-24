@@ -15,9 +15,11 @@ Use `vMAJOR.MINOR.PATCH` tags. Before 1.0, a breaking contract change increments
 - [ ] Create the tag and GitHub release at the verified commit; do not move published tags.
 - [ ] Reinstall using the published tag and record the result.
 
-Keep bank/resource release tags separate from code releases. In op55, `banks-v1` identifies resource distribution and is not the skillset's semantic version. Publish required license attachments alongside resources.
+Publish any required third-party license attachments alongside redistributed resources. Independently versioned integrations keep their own release lifecycle.
 
 ## Reproducible installation
+
+The pinned [`skills@1.7.4` installer](https://github.com/vercel-labs/skills/blob/v1.7.4/package.json) requires Node.js >= 22.20.0. This does not replace the runtime requirements of individual rendering tools.
 
 The skills installer parses a quoted `owner/repo#REF` as a Git ref. `@name` selects a skill, not a version. Use a published tag or full 40-character commit SHA; do not advertise a tag before it exists. Pin the installer itself, for example `npx skills@1.7.4 add 'owner/repo#FULL_COMMIT_SHA'`, replacing the source with the verified repository and SHA.
 
