@@ -29,16 +29,7 @@
       "$O/../SKILL.md"
     ],
     "exceptions": {},
-    "transitions": {
-      "skills/resolve-showreel-tools/SKILL.md": {
-        "reason": "op55가 기준 커밋 828990b에서 skill 하나라서 op55 문서를 $O/../SKILL.md로 읽는다",
-        "close_when": "op55가 op55-compose·op55-render·op55-verify·resolve-op55-tools로 변환되면 이 경로를 leaf Read와 resolve-op55-tools/scripts로 바꾸고 transition을 지운다"
-      },
-      "skills/prepare-video-audio/SKILL.md": {
-        "reason": "op55가 기준 커밋 828990b에서 skill 하나라서 음악 절차를 $O/../SKILL.md 문서로 읽는다",
-        "close_when": "op55가 op55-compose·op55-render·op55-verify·resolve-op55-tools로 변환되면 음악 단계를 세 leaf의 Read로 바꾸고 O를 resolve-op55-tools/scripts로 정한 뒤 transition을 지운다"
-      }
-    }
+    "transitions": {}
   },
   "migration": {
     "rewritten": [
@@ -62,7 +53,9 @@
       "skills/resolve-showreel-tools/scripts",
       "skills/showreel-mode/SKILL.md",
       "skills/showreel-mode/playbooks/create-video.md",
-      "skills/showreel-mode/playbooks/revise-video.md"
+      "skills/showreel-mode/playbooks/revise-video.md",
+      "skills/prepare-video-audio/references/music.md",
+      "skills/prepare-video-audio/references/elevenlabs-music.md"
     ],
     "pending": []
   },
@@ -124,11 +117,8 @@
       "snapshot": "docs/command-snapshot.md",
       "commands": [
         "python3 $S/narrate.py <프로젝트>/script.json --stt",
-        "node $O/render.mjs --score <프로젝트>/audio/music/score.mjs --out <프로젝트>/audio/music/music.wav --analysis <프로젝트>/audio/music/analysis.json",
-        "python3 $O/verify.py <프로젝트>/audio/music/music.wav --analysis <프로젝트>/audio/music/analysis.json --waveform-png",
         "python3 $S/eleven.py sfx-kit <프로젝트>/audio/sfx --names impact,riser",
         "python3 $S/timeline.py <프로젝트>/script.json --music-analysis audio/music/analysis.json",
-        "python3 $O/verify.py <프로젝트>/audio/music/music.wav --analysis <프로젝트>/audio/music/analysis.json --mix <프로젝트>/timeline.json",
         "python3 $S/sfx_library.py find 종이",
         "python3 $S/sfx_library.py use <이름…> --to <프로젝트>"
       ]
@@ -139,9 +129,7 @@
       "commands": [
         "python3 $S/preflight.py",
         "python3 $S/eleven.py voices --lang ko",
-        "python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts \"Hahmlet:wght@300;900\"]",
-        "npx skills add ynginkim/op55 -a claude-code",
-        "node $O/setup.mjs"
+        "python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts \"Hahmlet:wght@300;900\"]"
       ]
     }
   ],

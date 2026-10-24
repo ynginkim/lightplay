@@ -7,8 +7,8 @@
 | 구분 | 항목 | 이유 |
 | --- | --- | --- |
 | 역사적 prompt로 보존 | 네 prompt 본문 | 요청 유형(자기 쇼릴 60초, 홍보 2분·여러 보이스, 나레이션 없는 30초, 세로 15초 행사) 대표 사례 |
-| 지금 정책과 다름(활성 assertion 아님) | `brief_answers`의 "음악은 ElevenLabs Music"(id 1·2·3) | 음악은 op55로 작곡하고 ElevenLabs Music은 쓰지 않는다 |
+| 선택 경로의 입력으로 사용 가능 | `brief_answers`의 "음악은 ElevenLabs Music"(id 1·2·3) | Music 사용 선택으로 읽되 실제 BYOK·권한·크레딧 확인과 현재 사용 범위를 따른다 |
 | 지금 정책과 다름(활성 assertion 아님) | "최종 MP4가 outputs 폴더에 있다" | 납품 파일은 프로젝트의 `out/`에 있다 |
-| 활성으로 쓸 수 있음 | 길이·해상도·yuv420p tv·-15~-13 LUFS·true peak ≤ -1.0·섬광·정지·공유용·포스터·절대 경로·청취 요청·질문 없음·concept 후보·비평 기록·한글 형태·캔버스/WebGL·자막·보이스 수·출처·엔드카드 정보 | 현재 `showreel-mode`의 결과물 계약과 맞다 |
+| 활성으로 쓸 수 있음 | 길이·해상도·yuv420p tv·-15~-13 LUFS·true peak ≤ -1.0·섬광·정지·공유용·포스터·절대 경로·청취 요청·concept 후보·비평 기록·한글 형태·캔버스/WebGL·자막·보이스 수·출처·엔드카드 정보 | 현재 `showreel-mode`의 결과물 계약과 맞다 |
 
 사람의 연속 시청·청취는 어떤 assertion으로도 대신하지 않는다.

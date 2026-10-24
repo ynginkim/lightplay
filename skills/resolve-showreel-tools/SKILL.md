@@ -13,15 +13,11 @@ disable-model-invocation: true
 ## S와 O
 
 - **S**: 이 SKILL.md를 연 실제 경로의 폴더 안 scripts 폴더의 절대 경로다. `test -f "$S/preflight.py"`로 확인한다.
-- **O**: op55의 scripts 폴더다. 아래 순서로 보고 `render.mjs`가 있는 첫 폴더를 쓴다. 이 순서는 `preflight.py`가 op55를 찾는 순서와 같다.
-  1. 환경 변수 `OP55_SCRIPTS`
-  2. 이 skill 옆에 설치된 op55: `$S/../../op55/scripts`
-  3. 작업 폴더와 그 위쪽 폴더의 `.claude/skills/op55/scripts`, `.agents/skills/op55/scripts`
-  4. 사용자 홈의 .claude/skills/op55/scripts
+- **O**: op55를 쓸 때만 확인하는 scripts 절대 경로다. `preflight.py`는 `OP55_SCRIPTS`, 이 skill 옆, 작업 폴더와 상위 폴더의 `.claude/skills`·`.agents/skills`, 두 하네스의 홈 설치 순서로 찾는다. 각 위치에서 현재 `resolve-op55-tools`와 예전 `op55` 이름을 확인한다. 이는 발견을 위한 후보이며 특정 커밋을 요구하지 않는다.
+- 지정한 `OP55_SCRIPTS`가 유효하지 않으면 다른 엔진으로 자동 대체하지 않는다. 설치본의 현재 문서·도구 위치를 읽고 `O`를 정한다. preflight가 찾지 못하면 사용자에게 설치 경로를 묻거나 설치를 안내한다. 음악 경로 선택은 prepare-video-audio가 맡는다. op55가 없어도 이 skillset의 다른 음악 경로를 쓸 수 있다.
 - 셸 변수는 명령 사이에 남지 않는다. 명령마다 확인한 절대 경로를 그대로 쓰거나 같은 명령 줄 앞에 `S=… O=…`를 붙인다. leaf 문서의 `$S`, `$O`는 이 두 값을 뜻한다.
 - 자식 명령에 경로를 명시한다. 환경 점검에는 `OP55_SCRIPTS`를, op55의 test mix에는 `SHOWREEL_SCRIPTS`와 `--mix-py`를 넘긴다. 예전 설치 위치를 찾는 스크립트 안의 대체 탐색에 기대지 않는다. 전역 환경 변수와 사용자 설정은 바꾸지 않는다.
-- op55는 기준 커밋에서 skill 하나다. op55 문서는 O의 부모 폴더의 SKILL.md(`$O/../SKILL.md`)와 그 references다. op55 문서의 `$S`는 op55의 scripts, 곧 여기의 `O`다.
-- O를 찾지 못하면 `npx skills add ynginkim/op55 -a claude-code`로 설치하라고 안내한다. 사운드뱅크는 `node $O/setup.mjs`로 받는다(기본 88MB, 사용자 홈의 .cache/op55/banks).
+- 설치 안내는 `npx skills@1.7.4 add ynginkim/op55 -a claude-code -a codex`다. 설치·사운드뱅크 다운로드는 사용자가 선택한다. 뱅크가 없어도 합성 악보만 쓸 수 있는지는 설치본 문서로 확인한다. 설치 경로·명령·버전은 prepare-video-audio가 읽는 현재 op55 문서가 정한다.
 
 ## 환경 점검
 
@@ -31,10 +27,10 @@ disable-model-invocation: true
 OP55_SCRIPTS=$O python3 $S/preflight.py
 ```
 
-결과의 "쓸 수 있는 경로"를 돌려주고, 표의 BGM 스킬(op55) 경로가 위에서 정한 O와 같은지 확인한다.
+op55를 사용할 때는 위 명령에 `OP55_SCRIPTS`를 전달한다. op55를 사용하지 않으면 이 환경변수 없이 같은 점검을 실행한다. 결과의 "쓸 수 있는 경로"를 돌려준다. `caps.music`은 발견한 scripts 경로 또는 null이다. 경로 발견은 문서·뱅크·음악 품질 확인을 뜻하지 않는다. `caps.music_api`는 키 없음·Free 플랜이면 false, 키가 있지만 Music 사용 가능 여부가 미확인이면 null이다. TTS 조회 권한 부족으로 Music 키까지 무효라고 판단하지 않는다.
 
 - **codex CLI나 이미지 스킬이 없을 때**: codex-image·photoreal·codex-cli 스킬은 https://github.com/revfactory/skills 에 있다. 출력된 설치 명령을 사용자에게 안내한다. 설치하지 않으면 코드로 그린 그래픽과 사용자 제공 사진으로 구성한다. 사용자가 "realphoto"라고 부르는 스킬의 실제 이름은 `photoreal`이다.
-- **ElevenLabs 키가 없을 때**: 나레이션이 필요한 요청이면 `preflight.py`가 출력하는 키 발급 절차를 안내하고, 키를 받기 전까지 음악·화면 버전으로 진행할 수 있다고 알린다. 음악은 op55로 작곡하므로 키와 관계없다.
+- **ElevenLabs 키가 없을 때**: 나레이션이나 선택한 Music API에 키가 필요하면 발급·로컬 설정 절차를 안내한다. 키를 받기 전에는 op55 또는 내장 합성·화면 제작을 진행할 수 있다. TTS용 키의 Music 권한은 별도로 확인한다. 키 원문은 받거나 출력하지 않는다.
 - **고른 보이스가 막힐 때**(Free 플랜은 라이브러리 보이스를 쓸 수 없다): `python3 $S/eleven.py voices --lang ko`로 쓸 수 있는 보이스를 고르거나 플랜 업그레이드를 안내한다.
 
 ## 새 프로젝트
@@ -68,7 +64,7 @@ python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts "Ha
    ```
 
 4. 엔진 복원: 2단계에서 고른 보관본이나 추출한 index 파일을 원래 자리에 복사한다. 놓은 파일이 고른 원본과 바이트가 같은지 `cmp`로 확인한다. `project.json`은 보관본이 있으면 늘 보관본으로 되돌린다. 없으면 3단계에서 확인한 규격으로 생성된 파일을 유지하고, 확인하지 못한 과거 메타데이터를 복원했다고 보고하지 않는다. 1단계에서 Git 상태가 깨끗했다면 같은 세 경로로 한정한 `git -C <프로젝트> status --short -- reel/engine.js reel/fx.js project.json`도 다시 깨끗해야 한다. `.restore/`는 프로젝트 커밋에 넣지 않는다. 미커밋 수정이 함께 사라질 수 있으므로 `git checkout`으로 되돌리지 않는다. 작업 폴더 규칙이 이 자리에서 `git checkout`을 지시하더라도 이 단계가 같은 목표(그 영상 때 엔진)를 대신한다.
-5. 음악을 다시 렌더해야 하면 `node $O/render.mjs`로 렌더한다. 2026-10-23 이전 프로젝트의 제작노트에 있는 예전 showreel 안의 BGM 렌더 명령과 같은 엔진이고 같은 바이트가 나온다(video-creator의 pstack-harness, 2026-10-23-agent-skills에서 확인된 기록).
+5. 음악도 다시 만들어야 하면 prepare-video-audio의 "음악 교체"로 간다. 이전 음악 제공자와 엔진·악보·분석을 확인한다. 현재 설치본이 과거와 같은 바이트를 만든다고 가정하지 않는다.
 
 결과로 보관 폴더 경로, 파일마다 고른 버전과 이유, `cmp` 결과, Git 상태 전후를 돌려준다.
 
@@ -78,8 +74,10 @@ python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts "Ha
 | --- | --- | --- |
 | Node 18 이상, 시스템 Chrome, playwright-core | build-video-scenes, critique-video, deliver-video | `preflight.py`. 렌더 시간은 영상 길이에 비례 |
 | ffmpeg, Python numpy·Pillow | 모든 검사·믹스·마감 | `preflight.py` |
-| ElevenLabs(나레이션·효과음) | prepare-video-audio | 키는 `eleven.py check`. 크레딧이 든다. 음악에는 쓰지 않는다 |
-| op55와 사운드뱅크 | prepare-video-audio | 음악 생성 API 비용 없음. 첫 사운드뱅크 다운로드와 디스크 |
+| ElevenLabs(나레이션·효과음) | prepare-video-audio | 키는 `eleven.py check`. 크레딧이 든다. 음악 API는 아래 ElevenLabs Music 행을 따른다 |
+| op55와 필요한 사운드뱅크 | prepare-video-audio | 기본 음악 경로. 음악 생성 API 비용 없음. 필요한 뱅크의 다운로드와 디스크 |
+| ElevenLabs Music | prepare-video-audio | 선택 경로. 사용자 BYOK와 Music 권한·유료 크레딧 필요 |
+| 내장 synth_music.py | prepare-video-audio | 앞선 두 경로가 실패하거나 사용 불가할 때. ffmpeg·numpy, 외부 음악 API 비용 없음 |
 | codex CLI, codex-image·photoreal 스킬 | build-video-scenes | 사용자 전역 설치(홈의 .claude/skills). 이미지당 약 1분, 플랜 사용량 차감 |
 | swiftc(macOS) | build-video-scenes(누끼) | 없으면 누끼 없이 진행 |
 | 공용 효과음 라이브러리 | prepare-video-audio, deliver-video | `sfx_library.py`가 `--lib`, 환경 변수 `SHOWREEL_SFX_LIBRARY`, `$CLAUDE_PROJECT_DIR/sfx-library` 순으로 찾는다. 셋 다 없으면 위치를 모른다며 멈춘다. 이때는 `sfx_library.py --lib <작업 폴더>/sfx-library find 종이`처럼 하위 명령 앞에 `--lib`를 붙인다 |
@@ -102,4 +100,4 @@ references 문서는 서로를 파일 이름만으로 부른다(예: "`design.md
 
 `concept.md`, `research.md`, `storyboard.md`, `timeline.json`처럼 프로젝트 파일 이름은 프로젝트 폴더 안의 파일이다. 스크립트 이름(`timeline.py` 등)은 `$S` 안의 파일이다.
 
-공유 계약(결과물 기준, 기술 기본값, 작업 위치, 프로젝트 파일, op55 경계)은 `references/contract.md`에 있다.
+공유 계약(결과물 기준, 기술 기본값, 작업 위치, 프로젝트 파일, 음악 경계)은 `references/contract.md`에 있다.

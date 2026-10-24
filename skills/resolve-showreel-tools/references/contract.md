@@ -31,7 +31,7 @@
 | --- | --- |
 | 길이·규격 | 60초, 16:9 1920×1080, 30fps. 릴스·쇼츠 용도면 9:16 1080×1920 |
 | 나레이션 | 요청에 있거나 내용을 말로 전해야 할 때만 넣는다. 쇼릴은 음악과 화면으로 전한다. 넣을 때는 콘셉트에 맞는 보이스를 `../prepare-video-audio/references/audio.md`의 보이스 표와 `eleven.py voices --lang ko`에서 고른다. Marcus `ibCGc01503OQd2R6i1n1`은 한국어 낭독 설정(`eleven_multilingual_v2`, stability 0.45 · similarity 0.8 · style 0.4)을 검증해 둔 보이스다 |
-| 음악 | [op55](https://github.com/ynginkim/op55)로 Claude가 작곡한다(합성 악기 + 실제 악기 샘플, 결정적 렌더, 숫자 검증). ElevenLabs Music은 쓰지 않는다(크레딧을 가장 많이 쓰는 항목이다). ElevenLabs는 나레이션·효과음에만 쓴다 |
+| 음악 | [op55](https://github.com/ynginkim/op55)가 기본이다. 선택한 ElevenLabs Music은 BYOK로 쓰고, 둘 다 실패하거나 사용 불가하면 내장 합성을 쓴다. 선택 기준은 `../prepare-video-audio/references/music.md` |
 | 이미지 | 콘셉트에 필요할 때만 codex-image로 생성한다. 실존 인물의 얼굴은 생성하지 않고 실제 사진만 쓴다 |
 | 산출물 | 마스터 MP4, 공유용 MP4, 포스터 JPG, 자막 SRT(나레이션이 있을 때), 제작노트 |
 | 음량 | -14 LUFS. `mix.py`가 true peak -2.0 dBTP로 마스터링하고, 검수 기준은 -1.0 dBTP 이하다 |
@@ -53,7 +53,7 @@
 | `concept.md`, `storyboard.md`, `research/` | plan-video | 모든 leaf, 제작노트 |
 | `script.json` | plan-video(원고), prepare-video-audio(음악·효과음) | `narrate.py`, `timeline.py`, `qa_check.py --script` |
 | `audio/vo/*.mp3`와 정렬 정보 | `narrate.py` | `timeline.py`, `mix.py` |
-| `audio/music/score.mjs`, `music.wav`, `analysis.json`, `music.meta.json` | op55 | `timeline.py`, `mix.py`, 크레딧 |
+| 음악 파일·`analysis.json`, 제공자별 원본 | prepare-video-audio가 선택한 음악 경로 | `timeline.py`, `mix.py`, 크레딧 |
 | `timeline.json` | `timeline.py` | `mix.py`, `finish.py`, `motion_check.py`, `qa_check.py`, op55 `verify.py --mix` |
 | `reel/timeline.js` | `timeline.py`(사람이 고치지 않는다) | 장면 코드(`window.TL`) |
 | `reel/` 장면 코드·`assets/` | build-video-scenes | `render.mjs`, `render_pieces.py` |
@@ -61,17 +61,19 @@
 | `out/<제목>_<길이>s*` | `finish.py` | `qa_check.py`, 납품 |
 | `qa/critique_NN.md`, `qa/qa_report.md`, `qa/final_sheet*.png` | critique-video, `qa_check.py` | 납품 판정 |
 
-## op55 경계
+## 음악 경계
 
-op55 기준 커밋 `828990bb00ed1b887bb29d79710006c3c4bec526`의 계약이다. 그 뒤의 op55 변경은 따라가지 않는다.
+영상 소비자가 필요한 파일·필드가 이 경계의 기준이다. op55는 설치본의 현재 문서·도구·산출물을 실행 시 확인한다. 특정 커밋을 실행 조건으로 요구하지 않는다. `828990b`는 최초 이식 검증의 역사적 기준이다.
 
 | 파일·필드 | 계약 |
 | --- | --- |
-| `audio/music/score.mjs` | op55가 해석하는 악보. showreel은 `concept.md`의 구간·에너지·강세와 나레이션 빈틈을 넘긴다 |
-| `script.json`의 `music.file` | 프로젝트 기준 `audio/music/music.wav`. `gain_db`, 덕킹, 시작, 자동화 같은 믹스 설정은 showreel 쪽 소유 |
+| 음악 파일 | 디코딩 가능한 stereo 오디오. 기본 경로 `audio/music/music.wav`, op55는 48 kHz 24-bit, 내장 합성은 48 kHz 16-bit. 믹서는 48 kHz stereo로 읽는다 |
+| `script.json`의 `music.provider` | 실제 사용한 `op55`, `elevenlabs`, `synth`. 기존 프로젝트에 없으면 원본 자료를 확인한다 |
+| `script.json`의 `music.file` | 실제 검수한 음악의 프로젝트 기준 경로. 기본은 `audio/music/music.wav`다. `gain_db`, 덕킹, 시작, 자동화 같은 믹스 설정은 showreel 쪽 소유 |
 | `analysis.json` | `file`, `duration`, `bpm`, `beats`·`downbeats`·`hits`(초 단위 수 배열), `energy`. `timeline.py`가 `music.start`를 더해 `bar1…`(다운비트)와 `music.hit1…` 큐를 만든다. `--music-analysis`의 상대 경로는 `script.json`이 있는 폴더 기준 |
-| `music.meta.json` | 격자(beat, t0, beatsPerBar, firstDownbeat), 섹션·강세·빈틈, `credits`. 크레딧 문구가 있으면 영상 크레딧에 넣는다 |
+| op55 전용 원본 | `score.mjs`, `music.meta.json`. meta에는 정확한 격자·섹션·강세·빈틈·credits가 있다. 현재 op55 음악의 크레딧을 영상과 보고에 넣는다. 다른 경로에 이 파일을 요구하지 않는다 |
+| API·내장 합성 원본 | `spec.json`, API는 보존할 생성 원본과 plan·모델·사용량 기록. 출처·크레딧은 제작노트로 전달한다 |
 | 화면의 음악 에너지 | `timeline.py`가 `music.file`의 WAV에서 소리 크기 곡선을 다시 계산해 `reel/timeline.js`에 넣는다. `analysis.json`의 `energy`를 그대로 쓰지 않는다 |
 | 믹스 | `mix.py`가 음악을 -16 LUFS로 맞춘 뒤 gain·덕킹을 적용한다. op55 마스터 음량과 영상 목표 음량은 별개다 |
 
-`timeline.py`는 빠진 필드에 기본값을 쓰는 부분이 있다. 그래서 음악을 받을 때 파일 존재, 유효한 JSON, `bpm` 수와 `beats`·`downbeats`·`hits` 배열, 길이와 프로젝트 경로가 맞는지를 직접 확인한다. 하나라도 어긋나면 중단하고 원인을 돌려준다.
+`timeline.py`는 빠진 필드에 기본값을 쓰는 부분이 있다. 그래서 음악을 받을 때 `../prepare-video-audio/references/music.md`의 수락 기준으로 실제 파일·유효 JSON·유한한 수와 배열·길이·경로를 확인한다. op55의 정확한 격자는 그대로 쓰고, API·내장 합성은 최종 파일을 분석한다. 추정 격자에 정확한 박·마디 정렬을 보장하지 않는다. 하나라도 어긋나면 중단하고 원인을 돌려준다.

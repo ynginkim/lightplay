@@ -18,13 +18,16 @@ REPO = "https://github.com/revfactory/skills"
 
 
 def find_op55():
-    """op55 BGM 스킬의 scripts 폴더: $OP55_SCRIPTS, 이 스킬 옆, 작업 폴더 위쪽의 .claude/.agents skills, ~/.claude/skills"""
-    cands = [Path(os.environ["OP55_SCRIPTS"])] if os.environ.get("OP55_SCRIPTS") else []
-    cands.append(HERE.parent.parent / "op55" / "scripts")
-    for d in [Path.cwd(), *Path.cwd().parents]:
-        cands += [d / ".claude" / "skills" / "op55" / "scripts", d / ".agents" / "skills" / "op55" / "scripts"]
-    cands.append(SKILLS / "op55" / "scripts")
-    return next((c.resolve() for c in cands if (c / "render.mjs").exists()), None)
+    if os.environ.get("OP55_SCRIPTS"):
+        cands = [Path(os.environ["OP55_SCRIPTS"]).expanduser()]
+    else:
+        roots = [HERE.parent.parent]
+        for d in [Path.cwd(), *Path.cwd().parents]:
+            roots += [d / ".claude/skills", d / ".agents/skills"]
+        roots += [Path.home() / ".claude/skills", Path.home() / ".agents/skills"]
+        cands = [root / name / "scripts" for root in roots for name in ("resolve-op55-tools", "op55")]
+    return next((c.resolve() for c in cands if all((c / name).is_file()
+                 for name in ("render.mjs", "verify.py", "setup.mjs"))), None)
 
 
 def run(cmd, timeout=20):
@@ -89,9 +92,10 @@ def main():
     sys.path.insert(0, str(HERE))
     import eleven
     key = eleven.api_key()
+    caps["music_api"] = None if key else False
     if not key:
         row("ElevenLabs API 키", False, "없음", "아래 'ElevenLabs 키 발급' 참고")
-        caps.update(narration=False, music_api=None)
+        caps["narration"] = False
     else:
         try:
             json.loads(eleven.request("GET", "/v1/models", retries=1))
@@ -107,13 +111,13 @@ def main():
                 s = json.loads(eleven.request("GET", "/v1/user/subscription", retries=1))
                 left = (s.get("character_limit") or 0) - (s.get("character_count") or 0)
                 row("요금제·크레딧", True, f"{s.get('tier')} · 남은 크레딧 {left:,}")
-                caps["music_api"] = s.get("tier") not in (None, "free")
+                caps["music_api"] = False if s.get("tier") == "free" else None
             except eleven.ElevenError:
-                row("요금제·크레딧", True, "확인 불가(키에 User Read 권한 없음) — Music 은 첫 생성 시도로 판단")
+                row("요금제·크레딧", True, "확인 불가 — Music 사용을 선택한 경우에만 생성 시도")
                 caps["music_api"] = None
         except eleven.ElevenError as e:
             row("ElevenLabs API 키", False, str(e).splitlines()[0][:80], "키 권한·유효성 확인")
-            caps.update(narration=False, music_api=None)
+            caps["narration"] = False
 
     if a.json:
         print(json.dumps({"rows": rows, "fix": fix, "caps": caps}, ensure_ascii=False, indent=1))
@@ -126,7 +130,9 @@ def main():
     n = caps.get("narration")
     print(f"  나레이션      {'ElevenLabs (점검 보이스 사용 가능)' if n is True else '다른 보이스 필요' if n == 'other_voice' else '불가 → 음악·자막 버전'}")
     m = caps.get("music_api")
-    print(f"  음악          {'op55 로 Claude 가 작곡(O=' + caps['music'] + ')' if caps.get('music') else 'op55 설치 필요(npx skills add ynginkim/op55)'} — ElevenLabs Music 은 쓰지 않음")
+    print(f"  음악 기본     {'op55 문서·뱅크 확인(O=' + caps['music'] + ')' if caps.get('music') else 'op55 경로 요청 또는 설치 안내'}")
+    print(f"  음악 API      {'BYOK 키 없음 또는 Free 플랜, 설정 안내 또는 다른 경로 선택' if m is False else 'BYOK 키 있음, Music 권한·크레딧 미확인. 선택한 경우에만 사용'}")
+    print("  음악 fallback 내장 synth_music.py 사용(ffmpeg·numpy 필요), 앞선 두 경로가 실패하거나 사용 불가할 때")
     if fix:
         print("\n고칠 것:")
         for f in fix:

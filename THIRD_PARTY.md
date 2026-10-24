@@ -18,7 +18,7 @@ That copyright and full MIT permission notice are retained in `LICENSE` and `ski
 
 ## op55
 
-Music generation may use the separate [op55 skillset](https://github.com/ynginkim/op55); the README identifies the integration baseline as commit `828990b`. Its own code license and [third-party notices](https://github.com/ynginkim/op55/blob/main/THIRD_PARTY.md) apply separately, including sound-bank, font, and vendored-code terms. Retain the attribution emitted for assets that require it. This document does not assert clearance of every sample or resulting output.
+The default music path uses the separate [op55 skillset](https://github.com/ynginkim/op55). The installed skillset and its output contract are checked at runtime. Commit `828990b` identifies the original migration validation, not a required runtime version. Its own code license and [third-party notices](https://github.com/ynginkim/op55/blob/main/THIRD_PARTY.md) apply separately, including sound-bank, font, and vendored-code terms. Retain the attribution emitted for assets that require it. This document does not assert clearance of every sample or resulting output.
 
 ## Project-specific assets and fonts
 

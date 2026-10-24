@@ -17,10 +17,10 @@ mode 1개, playbook 2개, skill 6개, principle 3개 (설치 단위 10개).
 | mode | `showreel-mode` | 자연어로 진입한다. 요청과 프로젝트 상태를 보고 playbook을 고르고 결과물·완료·사람 판정을 맡는다 |
 | playbook | `create-video`, `revise-video` | 새 영상 만들기(원래 0~11단계), 만든 영상 고치기(무효화 범위와 재사용 판단) |
 | adapter | `resolve-showreel-tools` | 스크립트·엔진 자원을 한 벌 소유하고 `S`·`O` 경로, 환경 점검, 새 프로젝트, 옛 프로젝트 복원을 맡는다 |
-| skill | `plan-video`, `prepare-video-audio`, `build-video-scenes`, `critique-video`, `deliver-video` | 기획·원고, 음악(op55)·나레이션·효과음·타임라인, 이미지·장면, 초안 비평, 최종 렌더·믹스·마감·납품 |
+| skill | `plan-video`, `prepare-video-audio`, `build-video-scenes`, `critique-video`, `deliver-video` | 기획·원고, 음악·나레이션·효과음·타임라인, 이미지·장면, 초안 비평, 최종 렌더·믹스·마감·납품 |
 | principle | `principle-concept-before-template`, `principle-judge-rendered-evidence`, `principle-stable-cues-late-surfaces` | 콘셉트가 먼저, 렌더한 증거로 판정, 큐는 고정하고 표면은 늦게 |
 
-음악은 별도 skillset인 [op55](https://github.com/ynginkim/op55)가 만든다. 이 skillset은 op55의 파일 계약과 문서로만 연결한다(기준 커밋 `828990b`).
+음악은 [op55](https://github.com/ynginkim/op55)가 기본이다. 선택한 ElevenLabs Music은 사용자 API 키로 쓰고, 두 경로가 실패하거나 사용 불가하면 내장 합성을 쓴다. op55의 현재 설치본 문서와 영상에 필요한 파일 계약을 실행 시 확인한다. [음악 경로와 BYOK 안내](skills/prepare-video-audio/references/music.md)에 선택 기준이 있다.
 
 ## 설치
 
@@ -30,8 +30,9 @@ mode 1개, playbook 2개, skill 6개, principle 3개 (설치 단위 10개).
 
 ```bash
 npx skills@1.7.4 add ynginkim/motion-graphic-skills -a claude-code -a codex
-npx skills@1.7.4 add ynginkim/op55 -a claude-code
 ```
+
+기본 음악 경로인 op55를 쓸 때는 같은 프로젝트에 `npx skills@1.7.4 add ynginkim/op55 -a claude-code -a codex`로 설치한다. op55 경로를 직접 제공할 수도 있다. ElevenLabs Music은 TTS용 키가 있어도 Music 권한·크레딧을 별도로 확인한다. API를 쓰지 않으면 내장 합성으로 진행할 수 있다.
 
 설치본은 복사본이다. 이 저장소가 바뀌면 다시 설치한다. 렌더러 의존성(playwright-core)은 첫 `new_project.py` 실행 때 설치본의 scripts 폴더 안에 받는다. 비공개 저장소이므로 설치하는 계정에 읽기 권한이 있어야 한다. 로컬 경로 설치는 설치 smoke로 확인하지만, GitHub 형식(`ynginkim/motion-graphic-skills`) 설치는 아직 확인하지 않았다.
 
