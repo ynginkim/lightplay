@@ -115,7 +115,7 @@ def main():
         before = inventory(source / "skills")
         subprocess.run(["git", "init", "--quiet", str(destination)], cwd=destination, check=True, capture_output=True, text=True)
         evidence["npx_version"] = subprocess.run(["npx", "--version"], cwd=destination, check=True, capture_output=True, text=True).stdout.strip()
-        command = ["npx", "--yes", "skills", "add", str(source), "-a", "claude-code", "-a", "codex", "-y"]
+        command = ["npx", "--yes", "skills@1.7.4", "add", str(source), "-a", "claude-code", "-a", "codex", "-y"]
         evidence["command"] = command
         result = subprocess.run(command, cwd=destination, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         (destination / "installer.log").write_text(result.stdout, encoding="utf-8")

@@ -27,8 +27,8 @@ mode 1개, playbook 2개, skill 6개, principle 3개 (설치 단위 10개).
 한 프로젝트에 모든 skill을 함께 설치한다. leaf가 형제 폴더의 adapter와 references를 읽기 때문이다.
 
 ```bash
-npx skills add ynginkim/motion-graphic-skills -a claude-code -a codex
-npx skills add ynginkim/op55 -a claude-code
+npx skills@1.7.4 add ynginkim/motion-graphic-skills -a claude-code -a codex
+npx skills@1.7.4 add ynginkim/op55 -a claude-code
 ```
 
 설치본은 복사본이다. 이 저장소가 바뀌면 다시 설치한다. 렌더러 의존성(playwright-core)은 첫 `new_project.py` 실행 때 설치본의 scripts 폴더 안에 받는다. 비공개 저장소이므로 설치하는 계정에 읽기 권한이 있어야 한다. 로컬 경로 설치는 설치 smoke로 확인하지만, GitHub 형식(`ynginkim/motion-graphic-skills`) 설치는 아직 확인하지 않았다.
@@ -41,10 +41,20 @@ npx skills add ynginkim/op55 -a claude-code
 
 ## 검증 수준
 
-구조 검사(`scripts/check.py`), 검사기 오류 주입(`scripts/selftest.py`), 원본 명령 스냅샷 대조, 임시 Git 폴더 설치 smoke, GitHub Actions를 통과했다. 원본 showreel과의 정적 호출 흐름 대조(dry-run, 시나리오 8개)는 별도 판정자 2라운드에서 회귀 0건이다. 기록은 [docs/validation.md](docs/validation.md)에 있다. 실제 영상·음악 품질은 만들어 보고 사람이 보고 듣기 전까지 확인되지 않은 상태다.
+기존 검증 기록에서는 구조 검사(`scripts/check.py`), 검사기 오류 주입(`scripts/selftest.py`), 원본 명령 스냅샷 대조, 임시 Git 폴더 설치 smoke, GitHub Actions를 통과했다. 이번 미병합 변경의 원격 CI 결과는 해당 PR에서 별도로 확인한다. 원본 showreel과의 정적 호출 흐름 대조(dry-run, 시나리오 8개)는 별도 판정자 2라운드에서 회귀 0건이다. 기록은 [docs/validation.md](docs/validation.md)에 있다. 실제 영상·음악 품질은 만들어 보고 사람이 보고 듣기 전까지 확인되지 않은 상태다.
 
 사용법은 [docs/guide/README.md](docs/guide/README.md), 설계는 [DESIGN.md](DESIGN.md), 이식 기록은 [docs/migration.md](docs/migration.md)에 있다.
 
 ## 출처와 라이선스
 
 [revfactory/showreel](https://github.com/revfactory/showreel)과 그 포크 [ynginkim/showreel](https://github.com/ynginkim/showreel)의 커밋 `307b3fd8407feca15c7bd74a089276e8002b204c`에서 시작했다. 이후 upstream은 추적하지 않는다. MIT 라이선스이며 원 저작권 고지는 [LICENSE](LICENSE)에 그대로 있다. 스크립트·엔진 자원을 담은 `skills/resolve-showreel-tools/`에도 같은 LICENSE가 있다.
+
+외부 패키지, API 서비스, 음악, 프로젝트별 폰트·자산의 조건은 [THIRD_PARTY.md](THIRD_PARTY.md)에서 구분한다.
+
+## 기여와 버전
+
+[기여 안내](CONTRIBUTING.md) · [행동강령](CODE_OF_CONDUCT.md) · [보안 제보](SECURITY.md) · [도움받기](SUPPORT.md) · [변경 기록](CHANGELOG.md) · [버전·릴리스](RELEASING.md)
+
+소스 버전은 [VERSION](VERSION)에서, 발행된 태그·릴리스는 [GitHub Releases](https://github.com/ynginkim/motion-graphic-skills/releases)에서 확인한다. 재현 가능한 설치에는 실제 존재하는 태그 또는 전체 40자리 커밋 SHA를 `#REF`로 지정한다. `@name`은 버전이 아니라 skill 선택이다. 비공개 저장소에는 기존 읽기 권한이 필요하다. 설치·구조 검사는 실제 모델 실행이나 산출물 품질 검증과 별개다.
+
+[하네스 패밀리](https://github.com/ynginkim/harness-family) 공통 철학과 목록. 비공개 저장소는 접근 권한이 있는 계정에서만 열린다.

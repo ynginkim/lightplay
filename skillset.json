@@ -144,5 +144,6 @@
         "node $O/setup.mjs"
       ]
     }
-  ]
+  ],
+  "version": "0.1.0"
 }
