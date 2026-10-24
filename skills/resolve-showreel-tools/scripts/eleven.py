@@ -34,12 +34,12 @@ SKILL = Path(__file__).resolve().parent.parent
 
 KEY_HELP = """ElevenLabs API 키가 필요하다.
   1) https://elevenlabs.io 가입·로그인 → 왼쪽 아래 Developers(또는 프로필) → API Keys → Create API Key
-  2) 권한: Text to Speech, Speech to Text, Sound Effects, Music, Voices(Read), User(Read) 를 켠다
-     (User Read 가 있어야 남은 크레딧을 확인할 수 있다). 키는 한 번만 보이므로 바로 복사한다.
-  3) 셸 설정에 저장:  echo 'export ELEVENLABS_API_KEY="sk_..."' >> ~/.zshrc && source ~/.zshrc
-     (또는 프로젝트 폴더의 .env 파일에 ELEVENLABS_API_KEY=sk_... 한 줄)
-  요금제: Free 는 월 1만 크레딧·상업적 이용 불가·라이브러리 보이스(Marcus 등)·Music API 사용 불가.
-          Starter($6) 이상이면 라이브러리 보이스와 상업적 이용, Music 은 유료 플랜에서 가능."""
+  2) 이번 작업에 쓸 TTS, STT, Sound Effects, Music 권한만 켠다. 보이스 조회에는 Voices(Read),
+     크레딧 조회에는 User(Read)가 필요하다. 키별 사용량 한도를 설정한다.
+  3) 사용자가 환경 변수 ELEVENLABS_API_KEY 또는 Git에서 제외한 프로젝트 .env에
+     ELEVENLABS_API_KEY=<발급한 키>를 설정한다. 대화에는 키를 붙이지 않고 설정 완료만 알린다.
+  Music API는 유료 플랜이 필요하다. 현재 권한·요금·크레딧은 대시보드에서 확인한다.
+  TTS에 쓰던 키도 Music 권한과 사용 가능 크레딧을 별도로 확인한다."""
 
 
 class ElevenError(Exception):
@@ -192,7 +192,7 @@ def music(out, plan=None, prompt=None, length_s=None, model="music_v1", seed=Non
         body["seed"] = int(seed)
     for f in (fmt, "mp3_44100_128"):
         try:
-            raw = request("POST", f"/v1/music?output_format={f}", body=body, accept_audio=True, timeout=900, retries=5)
+            raw = request("POST", f"/v1/music?output_format={f}", body=body, accept_audio=True, timeout=900, retries=1)
             break
         except ElevenError as e:
             if e.status == 403 and f != "mp3_44100_128":

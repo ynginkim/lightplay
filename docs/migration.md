@@ -53,6 +53,8 @@ showreel 단일 skill(`307b3fd`, 이 저장소 `374df70`)을 showreel-mode skill
 
 ## 옮긴 파일의 바이트 대조
 
+아래는 최초 이식 시점의 기록이다. 이후 음악 경로 변경으로 preflight.py·eleven.py·audio.md가 바뀌었으며 현재 검증은 [음악 검증 기록](music-validation.md)을 따른다.
+
 scripts·assets는 모두 원본과 같다. references는 아래 줄만 바꿨다. 바꾼 이유는 둘이다. (가) 경로 문장: 스크립트가 다른 skill 폴더로 옮겨져 skill 기준 상대 경로 `scripts/…`가 맞지 않게 되어 adapter의 `$S`로 바꾸거나, 프로젝트 기준 경로에 `<프로젝트>/`를 붙이거나, 옛 단일 `SKILL.md`를 가리키던 문장을 새 위치로 바꿨다. (나) 검사기 표기: 구조 검사기가 runtime 문서의 긴 대시와 인라인 코드 안의 절대 경로를 실패로 보므로 문장부호와 표기만 바꿨다(뜻은 같음).
 
 | 원본(374df70) | 새 경로 | sha256 원본 | 결과 |

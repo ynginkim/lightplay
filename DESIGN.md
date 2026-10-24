@@ -32,7 +32,7 @@ Status: implemented. 구조·설치·정적 흐름은 검증했고 실제 제작
 | playbook | `revise-video` | 기존 프로젝트와 피드백: 출발 상태와 무효화 범위가 다름 | `SKILL.md:149,160,235,283`, `references/qa.md:159-162` |
 | adapter | `resolve-showreel-tools` | 스크립트·엔진 자원 한 벌 소유, `S`·`O` 경로 해석, 점검, 새 프로젝트·옛 프로젝트 복원 분기, 공유 계약 | `SKILL.md:64-76,98-106`, `scripts/preflight.py:20-27` |
 | leaf | `plan-video` | 요청 읽기·콘셉트·조사·구성·원고 | `SKILL.md:78-124`, `references/brief.md`, `story.md` |
-| leaf | `prepare-video-audio` | op55 음악·나레이션·효과음·타임라인 | `SKILL.md:126-160`, `references/audio.md` |
+| leaf | `prepare-video-audio` | 음악 경로 선택·나레이션·효과음·타임라인 | `SKILL.md:126-160`, `references/audio.md` |
 | leaf | `build-video-scenes` | 이미지·스타일 프레임·장면 코드 | `SKILL.md:162-189`, `references/{images,design,engine,techniques}.md` |
 | leaf | `critique-video` | 초안 렌더·시트·움직임 검사·비평 반복 | `SKILL.md:191-209`, `references/qa.md:12-103` |
 | leaf | `deliver-video` | 최종·조각 렌더, 믹스, 마감, 자동 검수, 납품 보고, 정리 | `SKILL.md:211-264`, `references/qa.md:104-194` |
@@ -43,7 +43,7 @@ Status: implemented. 구조·설치·정적 흐름은 검증했고 실제 제작
 기각한 후보와 대체 위치:
 
 - 조사·브리프·스토리보드 leaf 분리: 독립 직접 호출 사례가 없다. `plan-video`의 references로 충분하다.
-- 음악 작곡 leaf·작곡 mode: op55가 소유한다(BGM 이관은 `CUSTOM.md:63`에서 이미 끝남). showreel은 op55를 중첩 호출하지 않는다.
+- 음악 작곡 leaf·작곡 mode: op55를 쓸 때는 그 설치본이 소유한다. 대안은 기존 ElevenLabs·합성 helper를 재사용하며 별도 음악 mode를 만들지 않는다.
 - 비평 mode: 사람의 역할 전환이 없다. 독립 비평은 `critique-video`의 단계다.
 - 규격 파생 playbook: 반복되는 독립 흐름이 확인되기 전까지 `revise-video`의 분기다.
 - 운영 adapter(resolve-capability): 운영 어휘는 하위 agent, 백그라운드 실행 둘이다. 셋 이상이 필요해지면 검토한다.
@@ -52,14 +52,16 @@ Status: implemented. 구조·설치·정적 흐름은 검증했고 실제 제작
 
 - 실행 자원(`scripts/`, `assets/`)은 `resolve-showreel-tools`가 원래 상대 배치(`scripts/../assets`) 그대로 한 벌 소유한다. 다른 leaf는 제목 바로 아래 `Read ../resolve-showreel-tools/SKILL.md`로 adapter를 읽고 그 경로를 쓴다.
 - 기술별 reference는 담당 leaf가 소유한다. 다른 leaf가 필요하면 그 경로를 읽는다(`qa.md`는 critique-video, 믹스 기준이 든 `audio.md`는 prepare-video-audio).
-- 공유 계약(결과물 기준, 기술 기본값, 작업 위치, 프로젝트 파일, op55 경계 필드)은 `resolve-showreel-tools/references/contract.md` 한 곳에 둔다.
-- **op55 기준 커밋은 `828990bb00ed1b887bb29d79710006c3c4bec526`이다.** 이번 이식의 파일 계약·경로·transition·dry-run 판정은 모두 이 커밋의 op55(`git show 828990b:<path>`)를 기준으로 한다. 이후 op55 커밋은 따라가지 않는다.
-- op55는 독립 skillset이다. showreel은 op55의 파일 계약(`score.mjs`, `music.wav`, `analysis.json`, `music.meta.json`)과 op55 문서로만 연결한다. op55는 아직 skill 하나라서 현재 op55 `SKILL.md`를 읽는다. 이 경로는 `skillset.json`의 `portability.transitions`에 "op55가 leaf로 변환됨"을 닫을 조건으로 등록한다.
+- 공유 계약(결과물 기준, 기술 기본값, 작업 위치, 프로젝트 파일, 음악 경계 필드)은 `resolve-showreel-tools/references/contract.md` 한 곳에 둔다.
+- 최초 이식의 정적 dry-run은 op55 `828990bb00ed1b887bb29d79710006c3c4bec526`을 기준으로 했다. 현재 실행은 특정 커밋을 요구하지 않고 설치된 op55 문서·도구·파일 계약을 확인한다. 사용 경로와 확인 가능한 버전은 제작노트에 남긴다.
+- 음악은 op55 기본, 선택한 ElevenLabs Music BYOK, 내장 합성 fallback의 세 경로다. 선택·실패·수락 기준은 `skills/prepare-video-audio/references/music.md`가 소유한다. 공통 계약은 음악 파일·analysis와 출처다. 악보·op55 meta는 op55에만 요구한다. 옛 단일 skill 문서 경로를 허용하던 transition 두 건은 제거했다.
 - 스크립트 이동 뒤 예전 설치 경로 탐색에 기대지 않는다. adapter가 `S`(이 skillset의 scripts)와 `O`(op55 scripts)의 실제 절대 경로를 확인하고, 자식 명령에 `OP55_SCRIPTS`, `SHOWREEL_SCRIPTS`, `--mix-py`를 명시한다. 전역 env와 사용자 설정은 바꾸지 않는다.
 
 ## 이식 결과
 
-원본 `SKILL.md`의 0~11단계와 지킬 것·자주 생기는 문제·참조 표는 [이식 장부](docs/migration.md)의 A01~A28로 모두 새 위치에 옮겼다. references 8개, scripts 22개, assets 5개를 담당 skill로 옮겼고 `migration.pending`은 0건이다. 원본 명령 35개는 [명령 스냅샷](docs/command-snapshot.md)과 각 leaf에 같은 문자열로 남아 있고 `command_snapshots`가 이를 검사한다.
+이 절의 바이트 대조 표는 최초 이식 시점의 기록이다. 이후 음악 경로 변경과 현재 검증은 [음악 검증 기록](docs/music-validation.md)에 있다.
+
+원본 `SKILL.md`의 0~11단계와 지킬 것·자주 생기는 문제·참조 표는 [이식 장부](docs/migration.md)의 A01~A28로 모두 새 위치에 옮겼다. references 8개, scripts 22개, assets 5개를 담당 skill로 옮겼고 `migration.pending`은 0건이다. 원본 명령 35개는 [명령 스냅샷](docs/command-snapshot.md)에 보존했다. 현재 `command_snapshots`는 활성 명령 30개를 대조한다. op55 전용 명령 5개는 설치본의 현재 문서·도구 경로로 확인하므로 고정 문자열 검사를 종료했다.
 
 | 대상 | 결과 |
 | --- | --- |
@@ -72,7 +74,7 @@ Status: implemented. 구조·설치·정적 흐름은 검증했고 실제 제작
 | --- | --- | --- |
 | Q3 | upstream report-only 추적(plan §8의 4단계) | 추적 종료. 기준 커밋 `307b3fd`와 MIT 라이선스만 기록한다. `tools/sync.sh`와 report-only 구성은 만들지 않는다 |
 | Q7 | meta-harness 작업명, 로컬·push 없음 | 저장소 `ynginkim/motion-graphic-skills`(비공개). mode 이름은 일단 `showreel-mode`. 공개는 검증 뒤 사용자 결정 |
-| Q2 | op55 leaf 호출 | op55가 아직 skill 하나이므로 현재 op55 skill 경로를 쓰고 transition을 등록 |
+| Q2 | op55 leaf 호출 | op55는 실행 시 설치본 문서·도구 경로로 연결. 2026-10-25 음악 경로 정책으로 옛 transition 종료 |
 | 라이선스 | 해당 없음 | `LICENSE`에 원 저작권 줄을 유지하고 본인 줄 추가. `resolve-showreel-tools/LICENSE` 사본을 `copies`로 바이트 대조 |
 | 커밋 | 격리 브랜치 | `main`에서 직접, 단계마다 검사 통과 뒤 커밋·push. force push·PR 없음 |
 | 음악 재생성 뒤 화면 재사용 | 원본 `SKILL.md:149` "박 격자가 같으면 화면 재렌더 불필요" | 격자에 더해 화면이 소비하는 큐·히트·음악 에너지 곡선·크레딧 문구를 비교해 정함(plan §3, artifact-graph). `timeline.py`가 WAV에서 에너지 곡선을 다시 계산하기 때문 |
@@ -99,7 +101,7 @@ leaf skill과 principle의 자동 호출은 `false`다.
 | S3 adapter 소비 leaf의 제목 직후 포인터 | 적용. 작업 leaf 5개 |
 | S4 제품명 lint·경로별 예외·transition | 적용. 예전 설치 경로·동기화·중첩 호출 문구 |
 | S5 이전 장부 prune | 적용 |
-| S6 명령 스냅샷 대조 | 적용. 원본 `SKILL.md`의 명령 문자열 35개와 대조. 도메인 스크립트 help는 실행 금지라 기록하지 않음 |
+| S6 명령 스냅샷 대조 | 적용. 역사적 명령 35개 중 활성 명령 30개와 대조. 도메인 스크립트 help는 실행 금지라 기록하지 않음 |
 | S7 install smoke | 적용 |
 | S8 진입 정책 | 적용 |
 | S9 색인 밖 principle 사용 | 적용 |
@@ -134,7 +136,8 @@ mode 이름은 `showreel-mode`로 확정했다(2026-10-24 사용자 결정). 같
 | ID | 값 | 적용 범위 |
 | --- | --- | --- |
 | Q1 | `showreel-mode`만 자연어 진입 | 이 저장소 |
-| Q2 | op55 독립, 파일 계약과 op55 문서로 연결 | transition 종료 전까지 현재 op55 skill 경로 |
+| Q2 | op55 독립, 런타임 문서·파일 계약 확인 | 기본 음악 경로. 특정 커밋은 실행 조건이 아님 |
+| 음악 경로 | op55 기본, ElevenLabs Music BYOK 선택, 내장 합성 fallback | 2026-10-25 사용자 결정. Suno 제외, 외부 Music 금지 정책 대체 |
 | Q4 | 도메인 adapter + 하네스 중립 운영 문장 | 운영 어휘 3개 이상이면 재검토 |
 | Q5 | 새 제작·수정 2 playbook | 오디오 교체·규격 변경은 수정 분기 |
 | 공개 | 비공개 유지. 공개 준비는 다른 담당자가 진행 중(2026-10-24 사용자 결정) | 이 저장소 |
@@ -148,8 +151,8 @@ mode 이름은 `showreel-mode`로 확정했다(2026-10-24 사용자 결정). 같
 | --- | --- | --- |
 | 실제 영상·음악 품질 | unverified | 승인된 제작 위치에서 새 영상과 수정 사례를 만들고 사용자가 전체 시청·청취 |
 | 앱 메뉴 표시와 자연어 진입 | unverified | 설치본을 새 Claude Code·Codex 세션에서 열어 mode 진입과 leaf 명시 호출 확인 |
-| op55 leaf 변환 | 대기 | op55가 op55-compose·op55-render·op55-verify·resolve-op55-tools로 변환되면 prepare-video-audio와 adapter의 op55 경로를 바꾸고 transition 삭제 |
-| op55 변경 후 재정렬 | 대기 | op55 변경 작업(leaf 변환 포함)이 끝난 뒤 새 HEAD의 파일 계약·leaf 이름을 기준 커밋 `828990b`와 대조하고 transition을 닫거나 갱신 |
+| op55 leaf 변환 | 정렬함 | 설치본 문서로 경로·명령을 확인하는 방식으로 변경하고 옛 transition 두 건 삭제 |
+| 음악 세 경로 실제 품질 | 일부 확인, 외부 호출·청취 unverified | 발견·BYOK 경계·합성 pipeline 테스트와 별개로 실제 op55·ElevenLabs 음악 및 사용자의 전체 청취 확인 |
 | GitHub 형식 설치 | unverified | 저장소 읽기 권한이 있는 계정으로 빈 Git 프로젝트에서 `npx skills add ynginkim/motion-graphic-skills -a claude-code -a codex`를 실행하고 10개 설치·형제 참조 확인 |
 | 새 세션 경로 시험(진입·원문 todo·leaf 직접 호출) | unverified | 경로 시험 예산이 승인되면 내부 검증 skill을 만들고 새 Claude·Codex 세션 각 1회로 mode 진입, playbook Read, 원문 단계 todo, leaf 직접 호출의 제약 유지를 확인 |
 | 복원 보존·질문 분기의 수용 분류 | 독립 판정 불가(라운드 4) | 기존 엄격화와 이번 인계가 허용한 차이를 수용 기준으로 명문화한 뒤 독립 판정. 작성 세션의 수용 근거는 검증 기록에 분리 |

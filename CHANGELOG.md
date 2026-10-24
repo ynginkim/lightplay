@@ -5,6 +5,7 @@ Changes are grouped using [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 ## [Unreleased]
 
 ### Changed
+- 음악 생성을 op55 런타임 발견 기본, ElevenLabs Music BYOK 선택, 내장 합성 fallback으로 변경한다. 기존 외부 Music API 금지 정책과 op55 커밋 의존을 정리한다.
 - Upgrade the local renderer's Playwright dependency from 1.63.0 to 1.64.1.
 
 ### Fixed

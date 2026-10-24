@@ -2,7 +2,9 @@
 
 showreel `SKILL.md`(기준 커밋 `307b3fd`, 이 저장소 `374df70`)의 명령 문자열을 줄 번호와 함께 옮긴 것이다. `skillset.json`의 `command_snapshots`가 이 파일과 각 leaf에 같은 문자열이 있는지 검사한다. 명령의 실행 가능성이나 현재 help 출력은 확인하지 않았다(이번 작업은 도메인 스크립트 실행 금지).
 
-이식 뒤 바뀐 명령은 둘이다. 환경 점검은 앞에 `OP55_SCRIPTS=$O`를 붙이고, op55 test mix는 앞에 `SHOWREEL_SCRIPTS=$S`, 뒤에 `--mix-py $S/mix.py`를 붙였다. 아래 원래 문자열은 새 명령 안에 그대로 들어 있다.
+이식 당시 바뀐 명령은 둘이다. 환경 점검은 앞에 `OP55_SCRIPTS=$O`를 붙이고, op55 test mix는 앞에 `SHOWREEL_SCRIPTS=$S`, 뒤에 `--mix-py $S/mix.py`를 붙였다. 아래 원래 문자열은 새 명령 안에 그대로 들어 있다.
+
+2026-10-25부터 op55 설치·setup·render·verify·test mix 5개 명령은 역사적 기록으로 보존하고 활성 문자열 대조에서 뺐다. 현재 명령은 발견한 op55 설치본 문서를 따른다. 나머지 30개는 계속 대조한다.
 
 | 원본 줄 | 담당 skill | 명령 |
 | --- | --- | --- |

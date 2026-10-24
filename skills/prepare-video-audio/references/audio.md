@@ -15,8 +15,8 @@
 `python3 $S/eleven.py check`로 키·보이스·모델을 점검한다. 키가 없으면 아래 절차를 사용자에게 그대로 안내한다(같은 내용이 `eleven.py`의 `KEY_HELP`에 있다).
 
 1. https://elevenlabs.io 가입·로그인 → 왼쪽 아래 Developers(또는 프로필) → API Keys → Create API Key
-2. 권한: Text to Speech, Speech to Text, Sound Effects, Music, Voices(Read), User(Read)를 켠다. User Read가 있어야 남은 크레딧을 조회할 수 있다. 키는 한 번만 보이므로 바로 복사한다.
-3. 셸 설정에 저장: `echo 'export ELEVENLABS_API_KEY="sk_..."' >> ~/.zshrc && source ~/.zshrc`, 또는 프로젝트 폴더의 `.env`에 `ELEVENLABS_API_KEY=sk_...`
+2. 이번 작업에 필요한 TTS·STT·효과음·Music 권한만 켠다. 보이스 조회에는 Voices Read, 크레딧 조회에는 User Read가 필요하다. TTS용 키를 Music에도 쓰면 Music 권한과 크레딧을 별도로 확인한다.
+3. 사용자가 환경변수 또는 Git에서 제외한 프로젝트 `.env`에 `ELEVENLABS_API_KEY=<발급한 키>`를 설정하고 설정 완료만 알린다. 키 원문은 대화로 받거나 출력하지 않는다. Music 전용 절차는 `references/elevenlabs-music.md`를 따른다.
 
 플랜별로 막히는 기능(실측):
 
@@ -98,72 +98,7 @@ stability를 바꾸거나 모델을 통째로 바꾸는 것은 효과가 없었�
 
 ## 음악
 
-> **이 수정판의 기본 경로는 [op55](https://github.com/ynginkim/op55) 스킬이다.** BGM은 Claude가 op55로 작곡·렌더·검증하고, op55가 쓴 `music.wav`와 `analysis.json`을 `script.json`의 `music.file`과 `timeline.py --music-analysis`에 그대로 준다. 아래 ElevenLabs Music·`synth_music.py` 내용은 업스트림 원문이라 남겨 두지만 쓰지 않는다. 스펙(`spec.json`)의 섹션·에너지를 정하는 방법은 그대로 참고한다.
-
-### 1) 스펙 하나로 두 경로
-
-`audio/music/spec.json`을 한 번 쓰면 ElevenLabs 플랜과 합성 음악을 모두 만들 수 있다.
-
-```json
-{"duration": 60, "mood": "cinematic", "bpm": 90, "key": "D", "minor": true,
- "global_styles": ["<콘셉트가 정한 장르·악기·질감, 영어>", "instrumental"],
- "sections": [{"name": "Cold Open", "start": 0, "energy": 0.2},
-              {"name": "Reveal", "start": 8.5, "energy": 0.6, "style": "massive braam on the first beat"},
-              {"name": "Rise", "start": 18, "energy": 0.8}, {"name": "Climax", "start": 40, "energy": 0.95},
-              {"name": "Finale", "start": 52, "energy": 0.3}],
- "events": [{"t": 8.5, "type": "hit"}, {"t": 39.6, "type": "riser", "dur": 2}, {"t": 30, "type": "stop", "dur": 0.8},
-            {"t": 56, "type": "boom"}, {"t": 57.5, "type": "chime"}]}
-```
-
-- 곡의 성격은 콘셉트에서 정한다. `"global_styles": ["glitchy breakbeat with janggu percussion", "crisp clicks", "instrumental"]`처럼 장르·악기·질감을 영어로 적으면 ElevenLabs 플랜이 그 문구를 쓴다. 제외할 것은 `"negative_styles"`, 마지막 섹션의 끝맺음은 `"ending"`(기본 "final big hit then long reverb ring out")으로 정한다.
-- `global_styles`가 없으면 mood의 기본 문구를 쓴다: `cinematic`(오케스트라·타이코 트레일러풍) / `pulse`(일렉트로닉 펄스) / `soft`(피아노·현악) / `playful`(경쾌한 팝). `synth_music.py` 대체 경로는 이 네 가지만 만들 수 있으므로 mood는 대체 경로용으로 함께 적어 둔다.
-- 쇼릴은 섹션을 `concept.md`의 구간과 맞춘다. 구간마다 소리의 질감이 바뀌어야 하면 섹션 `style`에 악기 변화를 적는다.
-- sections의 energy(0~1)는 층의 개수를 정한다. 플랜에서는 무드에 맞는 문장으로 바뀐다(테크 무드에 "orchestra"가 들어가지 않는다).
-- 섹션은 4마디 단위로 잡는다(bpm 120이면 8초, 90이면 10.67초). 경계가 마디에 있지 않으면 `plan`이 경고한다. 3초보다 짧은 섹션은 API가 받지 않으므로, `plan`이 경계를 3초 지점으로 밀거나 앞 섹션에 합친다.
-- events: hit, boom, braam, riser(끝이 t), whoosh, chime, stop(음악만 잠깐 끊기: 정적 연출)
-
-### 2) ElevenLabs Music
-
-```bash
-python3 $S/music_tools.py plan audio/music/spec.json            # → audio/music/plan.json
-python3 $S/eleven.py music audio/music/music.mp3 --plan audio/music/plan.json
-```
-
-- 섹션은 3초 이상이어야 한다. `plan`이 짧은 섹션을 앞 섹션에 합친다.
-- **아티스트·작곡가·곡 이름을 넣지 않는다.** "Hans Zimmer style"이 두 번 400으로 거부됐다. 거부되면 `eleven.py`가 응답의 대체 프롬프트를 보여 준다.
-- 생성 시간은 60초 곡에 1~2분이다. 같은 플랜으로 `--seed`를 바꿔 두 곡을 만들어 고를 수 있다. `--prompt`와 `--seed`를 함께 주면 422가 나므로 `eleven.py`가 seed를 빼고 보낸다.
-- 402가 나면 합성 음악으로 간다.
-- 생성된 곡 길이가 요청과 다를 수 있다(10초 요청에 7초가 나온 사례). `music_tools.py fit`으로 영상 길이에 맞춘 뒤 분석한다.
-- 생성된 곡은 대개 평평하다(평가에서 두 곡 모두 82~85%가 최대 세기에서 3dB 안이었다). `analyze`가 경고하면 큰 히트 앞을 믹스에서 내린다. `script.json`의 `music`에 `"automation": [[0, 0], ["line.n07-2.5", 0], ["line.n07-0.3", -10], ["line.n07", 0]]`처럼 [시각, dB]를 적으면 `mix.py`가 그 곡선대로 음악 음량을 바꾼다. 시각은 초·큐 이름·"큐±초"를 쓸 수 있다. 히트 2~3초 앞에서 -8~-12dB로 내렸다가 히트 프레임에 0dB로 돌아오게 하면, 같은 곡에서도 예고 → 타격 구조가 들린다.
-- 스펙을 쓸 때 섹션 에너지에 대비를 둔다. 절정(0.9 이상)은 전체의 25% 안, 가운데쯤에 0.3~0.45의 브레이크다운 하나, 이웃 섹션은 `style`에 악기 변화를 적는다(예: "strings drop out, only ticking pulse", "add brass stabs and choir"). `plan`이 평평한 스펙을 경고한다.
-- 플랜의 stop(정적 연출)은 무시되는 경우가 많았다(2분 곡에서 확인). 생성 뒤 `analyze`로 다음 프레이즈의 첫 박을 찾고 그 자리까지 끊는다: `python3 $S/music_tools.py gap audio/music/music.mp3 audio/music/music_edit.wav 103.2-103.97`. `script.json`의 `music.file`을 `audio/music/music_edit.wav`로 바꾸고 `timeline.py`부터 다시 돌린다.
-
-### 3) 합성 음악(대체 경로)
-
-```bash
-python3 $S/synth_music.py music audio/music/spec.json audio/music/music.wav
-```
-
-음원 없이 numpy로 만든다. 같은 입력이면 같은 소리가 나고 몇 초면 끝난다. ElevenLabs Music보다 단순하므로 납품 보고에 합성 음악이라고 적는다.
-
-### 4) 분석해서 장면을 맞춘다
-
-**ElevenLabs Music은 플랜의 섹션 길이를 지키지 않는다.** 대개 4마디 단위 프레이즈로 수렴한다(120 BPM이면 8초). 생성한 뒤 반드시 분석한다.
-
-```bash
-python3 $S/music_tools.py analyze audio/music/music.mp3     # → analysis.json: bpm, beats, downbeats, hits, energy
-```
-
-- 분석 결과를 보고 장면 경계를 실제 히트·다운비트로 옮긴다. `timeline.py --music-analysis`를 주면 `music.hit1…` 큐가 생기고, 화면에서 `REEL.TL.music.hits`·`downbeats`를 쓸 수 있다.
-- 드롭·클라이맥스가 약하면 그 구간만 따로 생성해("starts immediately with a massive hit on the first beat", negative "slow intro") 이어 붙이고, 히트를 다시 분석해 맞춘다.
-- 길이가 조금 다르면 `music_tools.py fit in.mp3 out.wav --dur 60`으로 맞춘다(6% 이내면 템포 미세 조정, 아니면 자르기·채우기 + 페이드).
-- **드롭이 늦게 오면 박 단위로 잘라 붙인다.** 15초 릴스에서 드롭을 3초에 요청했는데 두 시드 모두 7.8초에 나온 사례가 있다. 분석 결과의 박 시각을 보고, 같은 박 위상(마디 시작끼리)에서 자른다.
-
-```bash
-python3 $S/music_tools.py splice audio/music/music.mp3 audio/music/music_edit.wav \
-  --segments 0-3.90,7.78-19.5 --snap audio/music/analysis.json      # 빌드업 앞부분 + 드롭부터 → 드롭이 약 3.9초로 당겨짐
-python3 $S/music_tools.py analyze audio/music/music_edit.wav   # 다시 분석해 장면 경계를 맞춘다
-```
+음악 경로·공통 spec·내장 합성은 `references/music.md`, 선택한 ElevenLabs Music BYOK는 `references/elevenlabs-music.md`를 따른다. op55 분석은 그대로 쓰고 API·내장 합성은 최종 파일을 분석한다.
 
 ## 효과음
 
