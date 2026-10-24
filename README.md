@@ -43,7 +43,7 @@ npx skills@1.7.4 add ynginkim/op55 -a claude-code
 
 ## 검증 수준
 
-기존 검증 기록에서는 구조 검사(`scripts/check.py`), 검사기 오류 주입(`scripts/selftest.py`), 원본 명령 스냅샷 대조, 임시 Git 폴더 설치 smoke, GitHub Actions를 통과했다. 이번 미병합 변경의 원격 CI 결과는 해당 PR에서 별도로 확인한다. 원본 showreel과의 정적 호출 흐름 대조(dry-run, 시나리오 8개)는 별도 판정자 2라운드에서 회귀 0건이다. 기록은 [docs/validation.md](docs/validation.md)에 있다. 실제 영상·음악 품질은 만들어 보고 사람이 보고 듣기 전까지 확인되지 않은 상태다.
+기존 검증 기록에서는 구조 검사(`scripts/check.py`), 검사기 오류 주입(`scripts/selftest.py`), 원본 명령 스냅샷 대조, 임시 Git 폴더 설치 smoke, GitHub Actions를 통과했다. 이번 미병합 변경의 원격 CI 결과는 해당 PR에서 별도로 확인한다. 원본 showreel과의 정적 호출 흐름 대조는 시나리오 8개와 시나리오 7의 후속 재판정을 포함해 별도 판정자 4라운드를 기록했다. 최신 시나리오 7 판정의 확정 회귀는 0건이며, 전체 분류는 보존·질문 분기의 수용 범위 때문에 판정 불가로 남았다. 기록과 작성 세션 의견은 [docs/validation.md](docs/validation.md)에 있다. 실제 영상·음악 품질은 만들어 보고 사람이 보고 듣기 전까지 확인되지 않은 상태다.
 
 사용법은 [docs/guide/README.md](docs/guide/README.md), 설계는 [DESIGN.md](DESIGN.md), 이식 기록은 [docs/migration.md](docs/migration.md)에 있다.
 

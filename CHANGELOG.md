@@ -13,7 +13,7 @@ Changes are grouped using [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - The shared SFX library location now matches `sfx_library.py`: `--lib`, then `SHOWREEL_SFX_LIBRARY`, then `$CLAUDE_PROJECT_DIR/sfx-library`. Without any of these the script stops, and the docs say to pass `--lib` before the subcommand.
 
 ### Changed
-- 시나리오 7의 독립 정적 dry-run 라운드 3과 관찰별 처리 근거를 기록하고 설계·검증 문서의 결과와 미확인 항목을 갱신한다.
+- 시나리오 7의 독립 정적 dry-run 라운드 3·4와 관찰별 처리 근거를 기록하고, 확정 회귀 0과 전체 수용 분류의 판정 불가를 구분해 설계·검증 문서를 갱신한다.
 
 ## [0.1.0] - 2026-10-24
 
