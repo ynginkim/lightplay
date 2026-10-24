@@ -81,7 +81,7 @@ python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts "Ha
 | op55와 사운드뱅크 | prepare-video-audio | 음악 생성 API 비용 없음. 첫 사운드뱅크 다운로드와 디스크 |
 | codex CLI, codex-image·photoreal 스킬 | build-video-scenes | 사용자 전역 설치(홈의 .claude/skills). 이미지당 약 1분, 플랜 사용량 차감 |
 | swiftc(macOS) | build-video-scenes(누끼) | 없으면 누끼 없이 진행 |
-| 공용 효과음 라이브러리 | prepare-video-audio, deliver-video | 환경 변수 `SHOWREEL_SFX_LIBRARY`, 없으면 `<작업 폴더>/sfx-library` |
+| 공용 효과음 라이브러리 | prepare-video-audio, deliver-video | `sfx_library.py`가 `--lib`, 환경 변수 `SHOWREEL_SFX_LIBRARY`, `$CLAUDE_PROJECT_DIR/sfx-library` 순으로 찾는다. 셋 다 없으면 위치를 모른다며 멈춘다. 이때는 `sfx_library.py --lib <작업 폴더>/sfx-library find 종이`처럼 하위 명령 앞에 `--lib`를 붙인다 |
 
 ## 자료 위치
 

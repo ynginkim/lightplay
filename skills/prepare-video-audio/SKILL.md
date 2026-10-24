@@ -64,7 +64,7 @@ SHOWREEL_SCRIPTS=$S python3 $O/verify.py <프로젝트>/audio/music/music.wav --
 - 효과음은 화면의 움직임마다 맞춰 설계한다. 프리셋 이름만 고르지 말고 `eleven.py sfx "prompt"`로 구간의 재질(종이, 유리, 액체, 전자음)에 맞는 소리를 만든다.
 - 새로 만들기 전에 공용 효과음 라이브러리에서 찾는다.
   - `python3 $S/sfx_library.py find 종이`로 찾고, `python3 $S/sfx_library.py use <이름…> --to <프로젝트>`로 복사한다.
-  - 라이브러리 위치는 환경 변수 `SHOWREEL_SFX_LIBRARY`이고, 없으면 `<작업 폴더>/sfx-library`다.
+  - 라이브러리 위치를 찾는 순서는 resolve-showreel-tools의 도구 표에 있다. 환경 변수가 없는 셸에서는 하위 명령 앞에 `--lib`를 붙인다.
   - 맞는 소리가 없을 때만 새로 만든다. 새로 만든 소리는 `audio/sfx/list.tsv`에 `이름<TAB>길이<TAB>프롬프트`를 한 줄 남긴다. 라이브러리가 이 파일에서 프롬프트를 읽는다.
 
 ## 타임라인
