@@ -8,7 +8,7 @@
 4. 영향 장면과 완성본을 다시 검수한다.
 5. 변경·재사용 근거와 결과물·사람 확인 요청을 전달한다.
 
-**1.** Read `../resolve-showreel-tools/SKILL.md`. `S`·`O`를 확인하고 환경 점검을 실행한다. 프로젝트의 `제작노트.md`, `PAUSE.md`, `script.json`, `timeline.json`, `qa/qa_report.md`, `qa/critique_*.md`, `out/` 납품본을 읽는다. 정리된 프로젝트에는 무음 렌더 `out/video.mp4`와 `audio/mix.wav`가 없을 수 있다. 장면을 다시 렌더해야 하면 엔진 파일의 존재와 `git -C <프로젝트> status --short -- reel/engine.js reel/fx.js`를 확인한다. 엔진 상태는 HEAD와의 diff, `$S/../assets/engine/`과의 `cmp`, 제작노트로 판별한다. Git 밖이거나 미추적이면 보관본과 제작노트를 기준으로 삼는다. 엔진·폰트가 그 영상 때와 다르거나 없거나 엔진 상태를 판단할 수 없으면 adapter의 "옛 프로젝트 복원" 분기를 먼저 한다.
+**1.** Read `../resolve-showreel-tools/SKILL.md`. `S`·`O`를 확인하고 환경 점검을 실행한다. 프로젝트의 `제작노트.md`, `PAUSE.md`, `script.json`, `timeline.json`, `qa/qa_report.md`, `qa/critique_*.md`, `out/` 납품본을 읽는다. 정리된 프로젝트에는 무음 렌더 `out/video.mp4`와 `audio/mix.wav`가 없을 수 있다. 장면을 다시 렌더해야 하면 엔진 파일의 존재와 `git -C <프로젝트> status --short -- reel/engine.js reel/fx.js`를 확인한다. 엔진 상태는 index와의 diff, `$S/../assets/engine/`과의 `cmp`, 제작노트로 판별한다. Git 밖이거나 미추적이면 보관본과 제작노트를 기준으로 삼는다. 엔진·폰트가 그 영상 때와 다르거나 없거나 엔진 상태를 판단할 수 없으면 adapter의 "옛 프로젝트 복원" 분기를 먼저 한다.
 
 **2.** 아래 표에서 이번 변경이 닿는 행을 고른다. **principle-stable-cues-late-surfaces**를 적용한다. 재사용은 BPM·길이 같은 겉값이 아니라 화면이 실제로 소비하는 값(큐, `music.hitN`, 음악 에너지 곡선, 크레딧 문구, 규격)이 그대로인지로 정한다. 다시 만들 산출물, 재사용할 산출물, 다시 드는 비용(나레이션·효과음 크레딧, 렌더 시간)을 정리한다.
 
