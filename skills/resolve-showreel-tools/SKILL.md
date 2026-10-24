@@ -53,20 +53,20 @@ python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts "Ha
 
 ## 옛 프로젝트 복원
 
-이미 만든 프로젝트를 다시 렌더하기 전에 폰트를 다시 준비해야 할 때 쓴다. `new_project.py`를 기존 폴더에 다시 실행하면 `scenes.js`·`index.html`은 그대로 두지만 `reel/engine.js`·`reel/fx.js`를 이 skillset의 최신 엔진으로, `project.json`을 명령의 인자 값(기본 16:9·60초·30fps)으로 덮어쓴다. 그래서 순서를 지킨다.
+이미 만든 프로젝트를 다시 렌더하기 전에 엔진을 복원하거나 폰트를 다시 준비해야 할 때 쓴다. `new_project.py`를 기존 폴더에 다시 실행하면 `scenes.js`·`index.html`은 그대로 두지만 `reel/engine.js`·`reel/fx.js`를 이 skillset의 최신 엔진으로, `project.json`을 명령의 인자 값(기본 16:9·60초·30fps)으로 덮어쓴다. 그래서 순서를 지킨다.
 
 1. 보관: 세 파일을 `<프로젝트>/.restore/<YYYYmmdd-HHMMSS>/`에 복사한다. 프로젝트가 Git 저장소 안이면 `git -C <프로젝트> status --short -- reel/engine.js reel/fx.js project.json`의 출력도 기록한다.
 2. 되돌릴 버전 정하기: 목표는 그 영상을 만들 때의 엔진이다. 파일마다 다음으로 정한다.
-   - Git 상태가 깨끗하거나 Git 저장소가 아니면: 보관본(지금 디스크의 파일).
-   - `engine.js`나 `fx.js`가 수정됨으로 나오면 `git -C <프로젝트> diff HEAD -- reel/engine.js reel/fx.js`를 보고, 디스크 파일을 이 skillset의 최신 엔진(`$S/../assets/engine/`의 같은 이름 파일)과 `cmp`로 비교한다. 최신 엔진과 같으면 이전에 복원 없이 `new_project.py`가 덮어쓴 것이므로 HEAD 버전을 쓴다. 최신 엔진과 다르면 그 영상을 위해 고친 미커밋 수정으로 보고 보관본을 쓴다.
-   - 어느 쪽인지 diff와 제작노트로도 판단할 수 없으면 사용자에게 두 버전의 차이를 보여 주고 한 번 묻는다.
+   - Git 저장소 밖이거나 파일이 미추적(`??`) 또는 HEAD에 없으면 보관본(지금 디스크의 파일)을 쓴다. HEAD와 차이가 없는 파일도 보관본을 쓴다.
+   - HEAD와 다른 `engine.js`나 `fx.js`는 `git -C <프로젝트> diff HEAD -- reel/engine.js reel/fx.js`를 보고, 디스크 파일을 이 skillset의 최신 엔진(`$S/../assets/engine/`의 같은 이름 파일)과 `cmp`로 비교한다. 최신 엔진과 같으면 이전에 복원 없이 `new_project.py`가 덮어쓴 것이므로 HEAD 버전을 쓴다. 최신 엔진과 다르면 diff와 제작노트로 이전 엔진이 덮어쓴 것인지, 그 영상을 위해 고친 미커밋 수정인지 확인한다. 전자는 HEAD, 후자는 보관본을 쓴다.
+   - 어느 쪽인지 판단할 수 없으면 사용자에게 두 버전의 차이를 보여 주고 한 번 묻는다. 현재 최신 엔진과 다르다는 이유만으로 미커밋 수정으로 분류하지 않는다.
 3. 폰트 준비: `project.json`의 ratio·duration·fps를 읽어 같은 값을 넘긴다. `--force-engine`은 쓰지 않는다.
 
    ```bash
    python3 $S/new_project.py <프로젝트> --ratio <원래 ratio> --duration <원래 duration> --fps <원래 fps>
    ```
 
-4. 엔진 복원: 2단계에서 정한 버전을 원래 자리에 놓는다. 보관본은 그대로 복사하고, HEAD 버전은 `git -C <프로젝트> show HEAD:<저장소 기준 경로> > <파일>`로 쓴다. 놓은 파일이 고른 원본과 바이트가 같은지 `cmp`로 확인한다. `project.json`은 늘 보관본으로 되돌린다. 1단계에서 Git 상태가 깨끗했다면 `git status`도 다시 깨끗해야 한다. 미커밋 수정이 함께 사라질 수 있으므로 `git checkout`으로 되돌리지 않는다. 작업 폴더 규칙이 이 자리에서 `git checkout`을 지시하더라도 이 단계가 같은 목표(그 영상 때 엔진)를 대신한다.
+4. 엔진 복원: 2단계에서 정한 버전을 원래 자리에 놓는다. 보관본은 그대로 복사하고, HEAD 버전은 `git -C <프로젝트> show HEAD:<저장소 기준 경로> > <파일>`로 쓴다. 놓은 파일이 고른 원본과 바이트가 같은지 `cmp`로 확인한다. `project.json`은 늘 보관본으로 되돌린다. 1단계에서 Git 상태가 깨끗했다면 같은 세 경로로 한정한 `git -C <프로젝트> status --short -- reel/engine.js reel/fx.js project.json`도 다시 깨끗해야 한다. `.restore/`는 프로젝트 커밋에 넣지 않는다. 미커밋 수정이 함께 사라질 수 있으므로 `git checkout`으로 되돌리지 않는다. 작업 폴더 규칙이 이 자리에서 `git checkout`을 지시하더라도 이 단계가 같은 목표(그 영상 때 엔진)를 대신한다.
 5. 음악을 다시 렌더해야 하면 `node $O/render.mjs`로 렌더한다. 2026-10-23 이전 프로젝트의 제작노트에 있는 예전 showreel 안의 BGM 렌더 명령과 같은 엔진이고 같은 바이트가 나온다(video-creator의 pstack-harness, 2026-10-23-agent-skills에서 확인된 기록).
 
 결과로 보관 폴더 경로, 파일마다 고른 버전과 이유, `cmp` 결과, Git 상태 전후를 돌려준다.
