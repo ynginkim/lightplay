@@ -1,6 +1,6 @@
 # 검사 키트 출처
 
-2026-10-23 meta-harness 설치본(이 저장소 `.agents/skills/`, 출처 `/Users/fluentt/Documents/meta-harness` HEAD `dab5f3f08be34fc0a844ac932b21f0f4ecda6b8b`)에서 그대로 복사했다. 독자 수정 없음.
+2026-10-23 meta-harness 설치본(이 저장소 `.agents/skills/`, 출처 GitHub `ynginkim/meta-harness` HEAD `2b0eca0bd143c797232ee3a430c92a977d20eb20`(2026-10-24 이메일 히스토리 재작성 전 SHA는 `dab5f3f`))에서 그대로 복사했다. 독자 수정 없음.
 
 | 사본 | 원본 | sha256 |
 | --- | --- | --- |
