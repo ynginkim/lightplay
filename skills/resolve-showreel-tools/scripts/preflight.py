@@ -131,7 +131,7 @@ def main():
     print(f"  나레이션      {'ElevenLabs (점검 보이스 사용 가능)' if n is True else '다른 보이스 필요' if n == 'other_voice' else '불가 → 음악·자막 버전'}")
     m = caps.get("music_api")
     print(f"  음악 기본     {'op55 문서·뱅크 확인(O=' + caps['music'] + ')' if caps.get('music') else 'op55 경로 요청 또는 설치 안내'}")
-    print(f"  음악 API      {'BYOK 키 없음 또는 Free 플랜' if m is False else 'BYOK 키 있음, Music 권한·크레딧 미확인'} — 선택한 경우 ElevenLabs Music 사용")
+    print(f"  음악 API      {'BYOK 키 없음 또는 Free 플랜, 설정 안내 또는 다른 경로 선택' if m is False else 'BYOK 키 있음, Music 권한·크레딧 미확인. 선택한 경우에만 사용'}")
     print("  음악 fallback 내장 synth_music.py 사용(ffmpeg·numpy 필요), 앞선 두 경로가 실패하거나 사용 불가할 때")
     if fix:
         print("\n고칠 것:")

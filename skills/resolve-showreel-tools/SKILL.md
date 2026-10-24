@@ -74,7 +74,7 @@ python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts "Ha
 | --- | --- | --- |
 | Node 18 이상, 시스템 Chrome, playwright-core | build-video-scenes, critique-video, deliver-video | `preflight.py`. 렌더 시간은 영상 길이에 비례 |
 | ffmpeg, Python numpy·Pillow | 모든 검사·믹스·마감 | `preflight.py` |
-| ElevenLabs(나레이션·효과음) | prepare-video-audio | 키는 `eleven.py check`. 크레딧이 든다. 음악에는 쓰지 않는다 |
+| ElevenLabs(나레이션·효과음) | prepare-video-audio | 키는 `eleven.py check`. 크레딧이 든다. 음악 API는 아래 ElevenLabs Music 행을 따른다 |
 | op55와 필요한 사운드뱅크 | prepare-video-audio | 기본 음악 경로. 음악 생성 API 비용 없음. 필요한 뱅크의 다운로드와 디스크 |
 | ElevenLabs Music | prepare-video-audio | 선택 경로. 사용자 BYOK와 Music 권한·유료 크레딧 필요 |
 | 내장 synth_music.py | prepare-video-audio | 앞선 두 경로가 실패하거나 사용 불가할 때. ffmpeg·numpy, 외부 음악 API 비용 없음 |
