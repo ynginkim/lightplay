@@ -7,7 +7,7 @@
 영상을 만들 작업 폴더(Git 저장소)에서 이 skillset을 설치한다. op55는 기본 음악 경로를 사용할 때 같은 프로젝트 범위에 설치한다.
 
 ```bash
-npx skills@1.7.4 add ynginkim/motion-graphic-skills -a claude-code -a codex
+npx skills@1.7.4 add ynginkim/lightplay -a claude-code -a codex
 npx skills@1.7.4 add ynginkim/op55 -a claude-code -a codex
 ```
 
