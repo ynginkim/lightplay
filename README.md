@@ -32,9 +32,9 @@ Claude Code와 Codex에서 쓰는 모션그래픽 제작 하네스.
 
 1921년, 발터 루트만(Walter Ruttmann)은 색과 도형이 움직이는 추상 영화 *Lichtspiel Opus I*를 선보였다. *Lichtspiel*은 빛의 유희, 영어로는 *Lightplay*. 이 이름은 그 작품에서 가져왔다. [퐁피두 센터의 작품 기록](https://www.centrepompidou.fr/fr/ressources/oeuvre/cdLrro)
 
-<p align="center"><img src="assets/lichtspiel-opus-i-1921.gif" alt="발터 루트만의 Lichtspiel Opus I (1921), 05:30–05:36의 실제 영화 장면" width="480"></p>
+<p align="center"><img src="assets/lichtspiel-opus-i-1921.gif" alt="발터 루트만의 Lichtspiel Opus I (1921), 05:30~05:36의 실제 영화 장면" width="480"></p>
 
-이름에 영감을 준 Walter Ruttmann의 《Lichtspiel Opus I》(1921), 05:30–05:36. [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Lichtspiel_Opus_I_(1921).webm) · Public domain · [출처](THIRD_PARTY.md#lichtspiel-opus-i-film-excerpt)
+이름에 영감을 준 Walter Ruttmann의 《Lichtspiel Opus I》(1921), 05:30~05:36. [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Lichtspiel_Opus_I_(1921).webm) · Public domain · [출처](THIRD_PARTY.md#lichtspiel-opus-i-film-excerpt)
 
 화면만의 작품은 아니었다. 작곡가 막스 부팅(Max Butting)이 음악을 맡았다. [구겐하임의 상영 프로그램](https://www.guggenheim.org/wp-content/uploads/2017/08/guggenheim-film-visionaries-program.pdf)은 루트만이 부팅에게 현악 사중주 악보를 의뢰하고, 화면과 음악의 타이밍을 맞추기 위한 표기를 악보에 더했다고 설명한다.
 
@@ -103,13 +103,17 @@ npx skills@1.7.4 add ynginkim/lightplay -a claude-code -a codex
 
 ## OP55와 함께
 
-**OP55는 음악을 작곡하고, Lightplay는 그 음악 위에 움직임을 설계한다.**
+**[OP55](https://github.com/ynginkim/op55)는 BGM을 만드는 하네스 패밀리 스킬이다.**
 
-[OP55](https://github.com/ynginkim/op55)의 이름은 *Opus 5.5 → Op. 55*, 베토벤의 교향곡 3번으로 이어진다. Lightplay의 이름은 루트만과 부팅의 *Lichtspiel Opus I*에서 왔다.
+<p align="center"><a href="https://github.com/ynginkim/op55"><img src="assets/op55-readme.png" alt="OP55 README 소개 화면" width="800"></a></p>
 
-- **음악을 부탁한다.** Lightplay가 영상 길이, 구간별 에너지와 강세, 나레이션 사이의 빈틈을 정하면 OP55가 악보를 코드로 쓰고 음악을 렌더·검수한다.
-- **같은 시간을 쓴다.** 음악 파일과 박·다운비트·히트 정보를 받아 타임라인을 만들고, 글자와 도형이 등장하고 멈추는 순간을 큐에 연결한다.
-- **고칠 곳을 나눈다.** OP55는 작곡과 음악 렌더를, Lightplay는 장면·나레이션·효과음·최종 믹스를 맡는다. 바뀐 값이 화면에 영향을 주는지 확인한 뒤 재렌더 범위를 정한다.
+*OP55 프로젝트 소개.*
+
+Lightplay가 장면과 움직임을 만드는 동안, OP55는 영상에 맞는 음악을 작곡하고 렌더한다.
+
+- **음악 브리프를 정한다.** 영상 길이, 분위기, 구간별 에너지와 강세, 나레이션 사이의 빈틈을 전달한다.
+- **BGM을 받는다.** OP55가 음악을 렌더·검수하고, 음악 파일과 박·다운비트·히트 정보를 넘긴다.
+- **움직임을 맞춘다.** Lightplay가 그 정보를 타임라인의 큐에 연결해 글자와 도형의 등장·정지 시점을 맞추고, 나레이션·효과음과 함께 최종 믹스를 만든다.
 
 연동 형식은 [음악 파일 계약](skills/prepare-video-audio/references/music.md)과 [공유 타임라인](skills/resolve-showreel-tools/references/contract.md)에서 확인할 수 있다.
 
