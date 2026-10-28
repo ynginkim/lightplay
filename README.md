@@ -14,21 +14,9 @@ Claude Code와 Codex에서 쓰는 모션그래픽 제작 하네스.
 <img alt="license MIT" src="https://img.shields.io/badge/license-MIT-a99d8a?style=for-the-badge&labelColor=111111">
 </p>
 
-<p align="center"><a href="#왜-lightplay인가">이름의 이야기</a> · <a href="#설치">설치</a> · <a href="#만들고-고치는-법">사용법</a> · <a href="#op55와-함께">OP55와 함께</a> · <a href="#thanks-to-showreel">Thanks to Showreel</a> · <a href="docs/guide/README.md">가이드</a></p>
+<p align="center"><a href="#무엇을-만드는가">소개</a> · <a href="#왜-lightplay인가">이름의 이야기</a> · <a href="#설치">설치</a> · <a href="#만들고-고치는-법">사용법</a> · <a href="#op55와-함께">OP55와 함께</a> · <a href="#thanks-to-showreel">Thanks to Showreel</a> · <a href="docs/guide/README.md">가이드</a></p>
 
 ---
-
-## 왜 Lightplay인가
-
-**빛과 도형의 움직임에도 악보가 있다.**
-
-1921년, 발터 루트만(Walter Ruttmann)은 색과 도형이 움직이는 추상 영화 *Lichtspiel Opus I*를 선보였다. *Lichtspiel*은 빛의 유희, 영어로는 *Lightplay*. 이 이름은 그 작품에서 가져왔다. [퐁피두 센터의 작품 기록](https://www.centrepompidou.fr/fr/ressources/oeuvre/cdLrro)
-
-화면만의 작품은 아니었다. 작곡가 막스 부팅(Max Butting)이 음악을 맡았다. [구겐하임의 상영 프로그램](https://www.guggenheim.org/wp-content/uploads/2017/08/guggenheim-film-visionaries-program.pdf)은 루트만이 부팅에게 현악 사중주 악보를 의뢰하고, 화면과 음악의 타이밍을 맞추기 위한 표기를 악보에 더했다고 설명한다.
-
-Lightplay는 그 협업에서 출발한다. 글자가 들어오는 순간, 도형이 멈추는 순간, 음악의 강세가 닿는 순간을 따로 만들지 않는다. 같은 시간 위에서 함께 설계한다.
-
-오늘의 악보는 코드와 타임라인이다. 장면은 DOM·Canvas·WebGL·3D로 만들고, 소리와 화면은 이름 붙은 큐로 잇는다. 완성 여부는 코드를 다 썼는지가 아니라 **렌더한 장면이 의도대로 움직이는지**로 확인한다.
 
 ## 무엇을 만드는가
 
@@ -38,11 +26,25 @@ Lightplay는 그 협업에서 출발한다. 글자가 들어오는 순간, 도�
 
 실사 촬영본의 컷 편집이나 Sora·Veo 같은 생성형 비디오 모델 호출은 이 하네스의 범위가 아니다. 이미지 생성은 장면에 필요한 재료를 만드는 데 쓴다.
 
+## 왜 Lightplay인가
+
+**빛과 도형의 움직임에도 악보가 있다.**
+
+1921년, 발터 루트만(Walter Ruttmann)은 색과 도형이 움직이는 추상 영화 *Lichtspiel Opus I*를 선보였다. *Lichtspiel*은 빛의 유희, 영어로는 *Lightplay*. 이 이름은 그 작품에서 가져왔다. [퐁피두 센터의 작품 기록](https://www.centrepompidou.fr/fr/ressources/oeuvre/cdLrro)
+
+<p align="center"><img src="assets/lichtspiel-opus-i-1921.png" alt="발터 루트만의 Lichtspiel Opus I (1921), 05:30의 실제 영화 프레임" width="480"></p>
+
+이름에 영감을 준 Walter Ruttmann의 《Lichtspiel Opus I》(1921), 05:30. [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Lichtspiel_Opus_I_(1921).webm) · Public domain · [출처](THIRD_PARTY.md#lichtspiel-opus-i-film-still)
+
+화면만의 작품은 아니었다. 작곡가 막스 부팅(Max Butting)이 음악을 맡았다. [구겐하임의 상영 프로그램](https://www.guggenheim.org/wp-content/uploads/2017/08/guggenheim-film-visionaries-program.pdf)은 루트만이 부팅에게 현악 사중주 악보를 의뢰하고, 화면과 음악의 타이밍을 맞추기 위한 표기를 악보에 더했다고 설명한다.
+
+Lightplay는 이 협업에서 영감을 받았다. 오늘의 악보는 코드와 타임라인이다. 글자와 도형이 움직이는 순간, 음악의 강세가 닿는 순간을 같은 시간 위에서 설계한다.
+
 ## 설치
 
 고정된 [`skills@1.7.4` 설치 도구](https://github.com/vercel-labs/skills/blob/v1.7.4/package.json)는 Node.js ≥ 22.20.0을 요구한다. 이는 설치 도구의 요구 사항이며, 영상·음악 제작에 필요한 개별 도구와 자산은 별도로 확인한다.
 
-한 프로젝트에 모든 skill을 함께 설치한다. leaf가 형제 폴더의 adapter와 references를 읽기 때문이다.
+개별 스킬이 공통 도구와 자료를 함께 사용하므로, 한 프로젝트에 전체 스킬을 설치한다.
 
 ```bash
 npx skills@1.7.4 add ynginkim/lightplay -a claude-code -a codex
@@ -53,13 +55,13 @@ npx skills@1.7.4 add ynginkim/lightplay -a claude-code -a codex
 
 기본 음악 경로인 op55를 쓸 때는 같은 프로젝트에 `npx skills@1.7.4 add ynginkim/op55 -a claude-code -a codex`로 설치한다. op55 경로를 직접 제공할 수도 있다. 지원 기준은 op55 0.2.0 이상과 resolve-op55-tools 구조다. [v0.2.0 릴리스](https://github.com/ynginkim/op55/releases/tag/v0.2.0)가 발행되어 있다. 버전 정보가 없는 기존 resolve-op55-tools 설치본은 실제 경로와 "버전 미확인"을 기록하고 산출물로 호환성을 확인한다. 옛 op55/scripts 배치는 새 설치 후 `npx skills@1.7.4 remove op55`로 정리한다. 전역 사본이면 `-g`를 붙인다. ElevenLabs Music은 TTS용 키가 있어도 Music 권한·크레딧을 별도로 확인한다. API를 쓰지 않으면 내장 합성으로 진행할 수 있다.
 
-설치본은 복사본이다. 이 저장소가 바뀌면 다시 설치한다. 렌더러 의존성(playwright-core)은 첫 `new_project.py` 실행 때 설치본의 scripts 폴더 안에 받는다. 비공개 저장소이므로 설치하는 계정에 읽기 권한이 있어야 한다. 로컬 경로 설치는 설치 smoke로 확인하지만, GitHub 형식(`ynginkim/lightplay`) 설치는 아직 확인하지 않았다.
+설치본은 복사본이다. 이 저장소가 바뀌면 다시 설치한다. 렌더러 의존성(playwright-core)은 첫 `new_project.py` 실행 때 설치본의 scripts 폴더 안에 받는다. 비공개 저장소이므로 설치하는 계정에 읽기 권한이 있어야 한다. 로컬 경로 설치 smoke는 통과했으며, GitHub 경로 설치는 아직 별도 검증하지 않았다.
 
 </details>
 
 ## 만들고 고치는 법
 
-영상 작업 폴더에서 자연어로 요청한다. 현재 진입 스킬 이름은 `showreel-mode`다. 제품명은 Lightplay지만 설치된 스킬·도구의 내부 이름은 유지한다.
+영상 작업 폴더에서 자연어로 요청한다. `showreel-mode`로 시작한다.
 
 ### 처음 만들 때
 
@@ -103,13 +105,13 @@ npx skills@1.7.4 add ynginkim/lightplay -a claude-code -a codex
 
 **OP55는 음악을 작곡하고, Lightplay는 그 음악 위에 움직임을 설계한다.**
 
-[OP55](https://github.com/ynginkim/op55)의 이름은 *Opus 5.5 → Op. 55*, 베토벤의 교향곡 3번으로 이어진다. Lightplay의 이름은 루트만과 부팅의 *Lichtspiel Opus I*에서 왔다. 두 이름의 연결은 소개 문구에서 끝나지 않는다.
+[OP55](https://github.com/ynginkim/op55)의 이름은 *Opus 5.5 → Op. 55*, 베토벤의 교향곡 3번으로 이어진다. Lightplay의 이름은 루트만과 부팅의 *Lichtspiel Opus I*에서 왔다.
 
 - **음악을 부탁한다.** Lightplay가 영상 길이, 구간별 에너지와 강세, 나레이션 사이의 빈틈을 정하면 OP55가 악보를 코드로 쓰고 음악을 렌더·검수한다.
 - **같은 시간을 쓴다.** 음악 파일과 박·다운비트·히트 정보를 받아 타임라인을 만들고, 글자와 도형이 등장하고 멈추는 순간을 큐에 연결한다.
 - **고칠 곳을 나눈다.** OP55는 작곡과 음악 렌더를, Lightplay는 장면·나레이션·효과음·최종 믹스를 맡는다. 바뀐 값이 화면에 영향을 주는지 확인한 뒤 재렌더 범위를 정한다.
 
-루트만과 부팅의 협업은 이름의 영감이다. 지금 두 하네스를 잇는 것은 [음악 파일 계약](skills/prepare-video-audio/references/music.md)과 [공유 타임라인](skills/resolve-showreel-tools/references/contract.md)이다. 특정 버전 조합의 실제 영상·음악 품질을 보장한다는 뜻은 아니다.
+연동 형식은 [음악 파일 계약](skills/prepare-video-audio/references/music.md)과 [공유 타임라인](skills/resolve-showreel-tools/references/contract.md)에서 확인할 수 있다.
 
 ## 구성
 
@@ -122,30 +124,22 @@ mode 1개, playbook 2개, skill 6개, principle 3개 (설치 단위 10개).
 | 종류 | 이름 | 하는 일 |
 | --- | --- | --- |
 | mode | `showreel-mode` | 자연어로 진입한다. 요청과 프로젝트 상태를 보고 playbook을 고르고 결과물·완료·사람 판정을 맡는다 |
-| playbook | `create-video`, `revise-video` | 새 영상 만들기(원래 0~11단계), 만든 영상 고치기(무효화 범위와 재사용 판단) |
+| playbook | `create-video`, `revise-video` | 새 영상 만들기, 만든 영상 고치기(무효화 범위와 재사용 판단) |
 | adapter | `resolve-showreel-tools` | 스크립트·엔진 자원을 한 벌 소유하고 `S`·`O` 경로, 환경 점검, 새 프로젝트, 옛 프로젝트 복원을 맡는다 |
 | skill | `plan-video`, `prepare-video-audio`, `build-video-scenes`, `critique-video`, `deliver-video` | 기획·원고, 음악·나레이션·효과음·타임라인, 이미지·장면, 초안 비평, 최종 렌더·믹스·마감·납품 |
 | principle | `principle-concept-before-template`, `principle-judge-rendered-evidence`, `principle-stable-cues-late-surfaces` | 콘셉트가 먼저, 렌더한 증거로 판정, 큐는 고정하고 표면은 늦게 |
 
-음악은 [op55](https://github.com/ynginkim/op55)가 기본이다. 선택한 ElevenLabs Music은 사용자 API 키로 쓰고, 두 경로가 실패하거나 사용 불가하면 내장 합성을 쓴다. op55의 현재 설치본 문서와 영상에 필요한 파일 계약을 실행 시 확인한다. [음악 경로와 BYOK 안내](skills/prepare-video-audio/references/music.md)에 선택 기준이 있다.
+## 사용 전 확인
 
-## 확인한 것과 남은 것
+- 영상·음악의 최종 품질은 사람이 전체를 보고 들어 확인한다. 구조 검사나 렌더 성공만으로 납품 품질을 판정하지 않는다.
+- 한국어 타이포그래피와 나레이션을 중심으로 설계했다. 다른 언어는 별도 검수가 필요하다.
+- 외부 API는 해당 계정의 권한·크레딧·사용 조건을 확인한다. 폰트·이미지·음악에도 개별 이용 조건이 적용된다.
 
-납품 파일이 있다고 감상까지 끝난 것은 아니다. 에이전트는 프레임·수치·STT로 확인하고, 사람은 영상 전체의 리듬·가독성·의도 전달과 실제 소리를 보고 듣는다.
+구조·회귀·설치 검사 기록은 [검증 문서](docs/validation.md), 실행별 CI 결과는 해당 커밋이나 PR에서 확인한다. 실제 제작에 사용할 환경과 자산은 작업마다 점검한다.
 
-- 실제 영상·음악 품질은 만들어 보고 사람이 확인하기 전까지 미검증이다.
-- ElevenLabs를 선택하면 계정 권한·크레딧·사용 조건을 별도로 확인한다. API를 쓰지 않는 음악 경로도 있다.
-- 한글 타이포그래피와 한국어 나레이션을 중심으로 설계했다. 다른 언어에 같은 결과를 보장하지 않는다.
-- 배너는 프로젝트의 시각적 정체성을 위한 그림이며, Lightplay로 만든 영상 데모가 아니다.
+## 더 알아보기
 
-<details>
-<summary>구조·설치·회귀 검증 기록</summary>
-
-기존 검증 기록에서는 구조 검사(`scripts/check.py`), 검사기 오류 주입(`scripts/selftest.py`), 원본 명령 스냅샷 대조, 임시 Git 폴더 설치 smoke, GitHub Actions를 통과했다. 변경별 원격 CI 결과는 해당 커밋이나 PR에서 별도로 확인한다. 원본 showreel과의 정적 호출 흐름 대조는 시나리오 8개와 시나리오 7의 후속 재판정을 포함해 별도 판정자 4라운드를 기록했다. 최신 시나리오 7 판정의 확정 회귀는 0건이며, 전체 분류는 보존·질문 분기의 수용 범위 때문에 판정 불가로 남았다. 기록과 작성 세션 의견은 [docs/validation.md](docs/validation.md)에 있다. 실제 영상·음악 품질은 만들어 보고 사람이 보고 듣기 전까지 확인되지 않은 상태다.
-
-사용법은 [docs/guide/README.md](docs/guide/README.md), 설계는 [DESIGN.md](DESIGN.md), 이식 기록은 [docs/migration.md](docs/migration.md)에 있다.
-
-</details>
+[사용 가이드](docs/guide/README.md) · [설계](DESIGN.md) · [이식 기록](docs/migration.md) · [음악 경로와 BYOK](skills/prepare-video-audio/references/music.md)
 
 ## Thanks to Showreel
 
@@ -161,15 +155,15 @@ Lightplay는 이 기반을 mode·playbook·skill·principle로 나누고, OP55�
 
 ## 출처와 라이선스
 
-- **코드와 제작 지침.** [revfactory/showreel](https://github.com/revfactory/showreel)과 [ynginkim/showreel의 기준 커밋](https://github.com/ynginkim/showreel/tree/307b3fd8407feca15c7bd74a089276e8002b204c)에서 시작했다. 이후 upstream을 자동 추적하지 않는다. 원 저작권과 MIT 허가문은 [LICENSE](LICENSE)와 [adapter의 LICENSE](skills/resolve-showreel-tools/LICENSE)에 보존한다.
-- **이름의 영감.** Walter Ruttmann, *Lichtspiel Opus I* (1921), 음악 Max Butting. 위 작품·상영 기록은 이름과 제작 철학의 출처이며, 이 프로젝트와의 제휴나 보증을 뜻하지 않는다.
-- **대표 그림.** README 배너는 이미지 생성 도구로 만든 창작 이미지다. 영화의 실제 프레임이나 역사적 자료가 아니다.
+- **코드와 제작 지침.** [revfactory/showreel](https://github.com/revfactory/showreel)과 [ynginkim/showreel의 기준 커밋](https://github.com/ynginkim/showreel/tree/307b3fd8407feca15c7bd74a089276e8002b204c)에서 시작했다. 원 저작권과 MIT 허가문은 [LICENSE](LICENSE)와 [adapter의 LICENSE](skills/resolve-showreel-tools/LICENSE)에 보존한다.
+- **이름의 영감.** Walter Ruttmann, *Lichtspiel Opus I* (1921), 음악 Max Butting. 위 작품·상영 기록은 이름과 제작 철학의 출처다.
+- **대표 그림.** README 배너는 이미지 생성 도구로 만든 창작 이미지다. 본문의 원작 스틸과 구분되며, Lightplay의 영상 출력 예시는 아니다.
 - **외부 자산.** 패키지, API 서비스, 음악, 프로젝트별 폰트·이미지의 조건은 [THIRD_PARTY.md](THIRD_PARTY.md)에서 구분한다. 이 저장소의 MIT 라이선스가 외부 자산까지 다시 허가하지는 않는다.
 
 ## 기여와 버전
 
 [기여 안내](CONTRIBUTING.md) · [행동강령](CODE_OF_CONDUCT.md) · [보안 제보](SECURITY.md) · [도움받기](SUPPORT.md) · [변경 기록](CHANGELOG.md) · [버전·릴리스](RELEASING.md)
 
-소스 버전은 [VERSION](VERSION)에서, 발행된 태그·릴리스는 [GitHub Releases](https://github.com/ynginkim/lightplay/releases)에서 확인한다. 재현 가능한 설치에는 실제 존재하는 태그 또는 전체 40자리 커밋 SHA를 `#REF`로 지정한다. `@name`은 버전이 아니라 skill 선택이다. 비공개 저장소에는 기존 읽기 권한이 필요하다. 설치·구조 검사는 실제 모델 실행이나 산출물 품질 검증과 별개다.
+소스 버전은 [VERSION](VERSION)에서, 발행된 태그·릴리스는 [GitHub Releases](https://github.com/ynginkim/lightplay/releases)에서 확인한다. 재현 가능한 설치에는 실제 존재하는 태그 또는 전체 40자리 커밋 SHA를 `#REF`로 지정한다. `@name`은 버전이 아니라 skill 선택이다.
 
 [하네스 패밀리](https://github.com/ynginkim/harness-family) 공통 철학과 목록. 비공개 저장소는 접근 권한이 있는 계정에서만 열린다.
