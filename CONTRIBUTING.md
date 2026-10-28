@@ -1,4 +1,4 @@
-# Contributing to motion-graphic-skills
+# Contributing to Lightplay
 
 Before a change, read the README, relevant local guidance, and the current issue. Keep changes focused and preserve the user's files and explicit scope. For a skillset, distinguish mode (routing), playbook (end-to-end flow), skill (reusable work), and principle (decision criteria). Do not turn a suggestion or plan into a claim of completed execution.
 

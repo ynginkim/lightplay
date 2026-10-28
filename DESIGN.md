@@ -1,10 +1,12 @@
-# motion-graphic-skills 설계
+# Lightplay 설계
 
 Status: implemented. 구조·설치·정적 흐름은 검증했고 실제 제작 품질은 unverified다(아래 "검증 기록"과 "확인하지 못한 것").
 
 한 줄 철학: 주제에서 콘셉트를 세우고, 화면은 렌더한 증거로 판정하며, 오디오와 화면은 이름 붙은 큐로 묶어 늦은 수정을 싸게 만든다.
 
 이 저장소는 showreel 단일 skill(`307b3fd8407feca15c7bd74a089276e8002b204c`, 이 저장소 첫 커밋 `374df70`)을 meta-harness 구조의 skillset으로 옮긴 것이다. 설계 원안은 meta-harness 저장소의 `examples/showreel/plan.md` 1~7절이며, 아래 "이번 결정으로 대체"에 적은 것만 바꿨다.
+
+저장소 이름은 `motion-graphic-skills`에서 `lightplay`로 바뀌었다. 당시를 적은 기록(결정 표, dry-run 기록, 검증 기록의 실행 링크)은 옛 이름을 그대로 둔다.
 
 ## 범위
 
@@ -154,7 +156,7 @@ mode 이름은 `showreel-mode`로 확정했다(2026-10-24 사용자 결정). 같
 | 앱 메뉴 표시와 자연어 진입 | unverified | 설치본을 새 Claude Code·Codex 세션에서 열어 mode 진입과 leaf 명시 호출 확인 |
 | op55 leaf 변환 | 정렬함 | 설치본 문서로 경로·명령을 확인하는 방식으로 변경하고 옛 transition 두 건 삭제 |
 | 음악 세 경로 실제 품질 | 일부 확인, 외부 호출·청취 unverified | 발견·BYOK 경계·합성 pipeline 테스트와 별개로 실제 op55·ElevenLabs 음악 및 사용자의 전체 청취 확인 |
-| GitHub 형식 설치 | unverified | 저장소 읽기 권한이 있는 계정으로 빈 Git 프로젝트에서 `npx skills add ynginkim/motion-graphic-skills -a claude-code -a codex`를 실행하고 10개 설치·형제 참조 확인 |
+| GitHub 형식 설치 | unverified | 저장소 읽기 권한이 있는 계정으로 빈 Git 프로젝트에서 `npx skills add ynginkim/lightplay -a claude-code -a codex`를 실행하고 10개 설치·형제 참조 확인 |
 | 새 세션 경로 시험(진입·원문 todo·leaf 직접 호출) | unverified | 경로 시험 예산이 승인되면 내부 검증 skill을 만들고 새 Claude·Codex 세션 각 1회로 mode 진입, playbook Read, 원문 단계 todo, leaf 직접 호출의 제약 유지를 확인 |
 | 복원 보존·질문 분기의 수용 분류 | 독립 판정 불가(라운드 4) | 기존 엄격화와 이번 인계가 허용한 차이를 수용 기준으로 명문화한 뒤 독립 판정. 작성 세션의 수용 근거는 검증 기록에 분리 |
 | 옛 프로젝트의 실제 복원·폰트 로딩 | unverified | 승인된 실행에서 미추적·staged·누락 파일과 이전 엔진 덮어쓰기를 판별하고 선택 원본과 cmp. 폰트 로그·프레임·보관 폴더의 커밋 제외를 확인 |
