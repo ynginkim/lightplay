@@ -32,9 +32,9 @@ Claude Code와 Codex에서 쓰는 모션그래픽 제작 하네스.
 
 1921년, 발터 루트만(Walter Ruttmann)은 색과 도형이 움직이는 추상 영화 *Lichtspiel Opus I*를 선보였다. *Lichtspiel*은 빛의 유희, 영어로는 *Lightplay*. 이 이름은 그 작품에서 가져왔다. [퐁피두 센터의 작품 기록](https://www.centrepompidou.fr/fr/ressources/oeuvre/cdLrro)
 
-<p align="center"><img src="assets/lichtspiel-opus-i-1921.png" alt="발터 루트만의 Lichtspiel Opus I (1921), 05:30의 실제 영화 프레임" width="480"></p>
+<p align="center"><img src="assets/lichtspiel-opus-i-1921.gif" alt="발터 루트만의 Lichtspiel Opus I (1921), 05:30–05:36의 실제 영화 장면" width="480"></p>
 
-이름에 영감을 준 Walter Ruttmann의 《Lichtspiel Opus I》(1921), 05:30. [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Lichtspiel_Opus_I_(1921).webm) · Public domain · [출처](THIRD_PARTY.md#lichtspiel-opus-i-film-still)
+이름에 영감을 준 Walter Ruttmann의 《Lichtspiel Opus I》(1921), 05:30–05:36. [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Lichtspiel_Opus_I_(1921).webm) · Public domain · [출처](THIRD_PARTY.md#lichtspiel-opus-i-film-excerpt)
 
 화면만의 작품은 아니었다. 작곡가 막스 부팅(Max Butting)이 음악을 맡았다. [구겐하임의 상영 프로그램](https://www.guggenheim.org/wp-content/uploads/2017/08/guggenheim-film-visionaries-program.pdf)은 루트만이 부팅에게 현악 사중주 악보를 의뢰하고, 화면과 음악의 타이밍을 맞추기 위한 표기를 악보에 더했다고 설명한다.
 
@@ -157,7 +157,7 @@ Lightplay는 이 기반을 mode·playbook·skill·principle로 나누고, OP55�
 
 - **코드와 제작 지침.** [revfactory/showreel](https://github.com/revfactory/showreel)과 [ynginkim/showreel의 기준 커밋](https://github.com/ynginkim/showreel/tree/307b3fd8407feca15c7bd74a089276e8002b204c)에서 시작했다. 원 저작권과 MIT 허가문은 [LICENSE](LICENSE)와 [adapter의 LICENSE](skills/resolve-showreel-tools/LICENSE)에 보존한다.
 - **이름의 영감.** Walter Ruttmann, *Lichtspiel Opus I* (1921), 음악 Max Butting. 위 작품·상영 기록은 이름과 제작 철학의 출처다.
-- **대표 그림.** README 배너는 이미지 생성 도구로 만든 창작 이미지다. 본문의 원작 스틸과 구분되며, Lightplay의 영상 출력 예시는 아니다.
+- **대표 그림.** README 배너는 이미지 생성 도구로 만든 창작 이미지다. 본문의 원작 영상과 구분되며, Lightplay의 영상 출력 예시는 아니다.
 - **외부 자산.** 패키지, API 서비스, 음악, 프로젝트별 폰트·이미지의 조건은 [THIRD_PARTY.md](THIRD_PARTY.md)에서 구분한다. 이 저장소의 MIT 라이선스가 외부 자산까지 다시 허가하지는 않는다.
 
 ## 기여와 버전

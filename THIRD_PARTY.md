@@ -28,11 +28,11 @@ No font files are bundled in the reviewed repository tree. Fonts, images, video,
 
 The Contributor Covenant text in `CODE_OF_CONDUCT.md` retains its stated Creative Commons Attribution 4.0 license and attribution; it is not relicensed MIT.
 
-## Lichtspiel Opus I film still
+## Lichtspiel Opus I film excerpt
 
-- **Local asset:** `assets/lichtspiel-opus-i-1921.png`
+- **Local assets:** `assets/lichtspiel-opus-i-1921.gif`; the earlier still `assets/lichtspiel-opus-i-1921.png` is retained.
 - **Work:** Walter Ruttmann, *Lichtspiel Opus I* (1921).
 - **Source:** [Wikimedia Commons: Lichtspiel Opus I (1921).webm](https://commons.wikimedia.org/wiki/File:Lichtspiel_Opus_I_(1921).webm).
-- **Frame:** 05:30 in that silent, video-only source; extracted as a 480 × 360 PNG without retouching or upscaling. No soundtrack is included.
+- **Excerpt:** 05:30–05:36 in that silent, video-only source, converted to a looping 480 × 360 GIF at 8 fps (48 frames, approximately 1.34 MB). Frames are sampled in their original order and timing; no interpolation, retouching, upscaling, or color grading is applied. GIF conversion uses a 64-color palette. No soundtrack is included. The retained PNG is the 05:30 frame.
 - **Rights record:** The Commons file page marks the source `PD-old-70-expired` and [Public Domain Mark 1.0](https://creativecommons.org/publicdomain/mark/1.0/). The mark identifies public-domain status; it is not this repository's MIT license.
 - **Purpose:** Historical reference for the project's name, not a Lightplay-generated demo or an endorsement of this project.
