@@ -15,7 +15,7 @@ sys.path.insert(0, str(TOOLS))
 
 try:
     import numpy as np
-    from PIL import Image
+    from PIL import Image, ImageSequence
 except ImportError:
     print("SKIP: numpy and Pillow are required")
     sys.exit(0)
@@ -296,8 +296,8 @@ class Markers(Tmp):
         self.assertIn(19, data["missing_frames"])
 
     def test_broken_loop_closing_pose_fails(self):
-        write_frames(self.tmp / "l", [square(2), square(10), square(40), square(2)], [0, 1, 2, 3])
-        row, _ = qa.check_markers(str(self.lottie(0, [("idle", 0, 3)])), str(self.tmp / "l"))
+        write_frames(self.tmp / "l", [square(2 + 2 * k) for k in range(7)], range(7))
+        row, _ = qa.check_markers(str(self.lottie(0, [("idle", 0, 6)])), str(self.tmp / "l"))
         self.assertEqual(row.status, qa.FAIL)
 
     def test_marker_times_subtract_the_lottie_in_point(self):
@@ -460,6 +460,161 @@ class Encode(Tmp):
         r = encode(self.tmp / "g", self.tmp / "g", "--formats", "mp4")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(probe(self.tmp / "g.mp4", "stream=color_transfer")["color_transfer"], "iec61966-2-1")
+
+
+def disc(k, n=60, w=128, h=128, r=20):
+    y, x = np.mgrid[0:h, 0:w]
+    cx, cy = w / 2 + r * np.cos(2 * np.pi * k / n), h / 2 + r * np.sin(2 * np.pi * k / n)
+    a = blank(w, h)
+    a[(x - cx) ** 2 + (y - cy) ** 2 <= 49] = (200, 40, 40, 255)
+    return a
+
+
+class RoutesBackgroundsThemes(Tmp):
+    def test_one_wrong_engine_frame_in_480_fails_routes(self):
+        base = [square(2 + k % 40) for k in range(480)]
+        bad = list(base)
+        bad[200] = square(2, color=(10, 200, 10, 255))
+        write_frames(self.tmp / "a", base)
+        write_frames(self.tmp / "b", bad)
+        row, _ = qa.check_routes(str(self.tmp / "a"), str(self.tmp / "b"))
+        self.assertEqual(row.status, qa.FAIL)
+        self.assertIn("f200", row.line)
+
+    def test_textlayer_pair_fails_routes_and_peacock_pair_stays_a_warning(self):
+        self.assertEqual(qa.check_routes(str(GOLDEN / "01-textlayer/dotlottie"), str(GOLDEN / "01-textlayer/lottieweb"))[0].status, qa.FAIL)
+        self.assertEqual(qa.check_routes(str(GOLDEN / "04-pair/dotlottie"), str(GOLDEN / "04-pair/engine"))[0].status, qa.WARN)
+
+    def test_same_shape_on_white_and_black_fails(self):
+        def on(grey):
+            a = opaque(64, 64, grey)
+            a[20:40, 20:40, :3] = (200, 40, 40)
+            return a
+        write_frames(self.tmp / "w", [on(255)] * 3)
+        write_frames(self.tmp / "k", [on(0)] * 3)
+        for fn in (qa.check_players, qa.check_routes):
+            row, _ = fn(str(self.tmp / "w"), str(self.tmp / "k"))
+            self.assertEqual(row.status, qa.FAIL)
+            self.assertIn("배경", row.line)
+
+    def test_theme_difference_on_one_of_121_frames_counts(self):
+        frames = [square(2 + k % 30) for k in range(121)]
+        other = [f.copy() for f in frames]
+        other[1][20:36, 20:36] = (10, 10, 200, 255)
+        write_frames(self.tmp / "light", frames)
+        write_frames(self.tmp / "dark", other)
+        row, data = qa.check_themes([("light", str(self.tmp / "light")), ("dark", str(self.tmp / "dark"))])
+        self.assertEqual(row.status, qa.OK)
+        self.assertEqual(data["pairs"][0]["frames_compared"], 121)
+
+    def test_report_runs_ink_on_every_theme_folder(self):
+        write_frames(self.tmp / "once", [square(2 + 2 * k) for k in range(6)])
+        write_frames(self.tmp / "light", [square(2 + 2 * k) for k in range(6)])
+        write_frames(self.tmp / "dark", [blank()] * 6)
+        code, out, _ = cli("report", "--dir", self.tmp / "once", "--theme", f"light={self.tmp / 'light'}", "--theme", f"dark={self.tmp / 'dark'}", "--sheet-dir", self.tmp / "sheets")
+        self.assertEqual(code, 1)
+        self.assertIn("✗ 잉크(테마 dark)", out)
+
+    def test_theme_sheet_needs_a_folder_and_its_path_is_printed(self):
+        write_frames(self.tmp / "once", [square(2 + 2 * k) for k in range(6)])
+        write_frames(self.tmp / "light", [square(2 + 2 * k) for k in range(6)])
+        write_frames(self.tmp / "dark", [square(2 + 2 * k, color=(10, 10, 200, 255)) for k in range(6)])
+        args = ["report", "--dir", self.tmp / "once", "--theme", f"light={self.tmp / 'light'}", "--theme", f"dark={self.tmp / 'dark'}"]
+        self.assertEqual(cli(*args)[0], 2)
+        code, out, _ = cli(*args, "--out", self.tmp / "qa/report.txt")
+        self.assertEqual(code, 0, out)
+        self.assertTrue((self.tmp / "qa/sheet_themes.png").exists())
+        self.assertIn("sheet_themes.png", out)
+
+
+class MarkerSemantics(Tmp):
+    def lottie(self, ip, op, marks):
+        p = self.tmp / "m.json"
+        p.write_text(json.dumps({"v": "5.7.0", "fr": 60, "ip": ip, "op": op, "w": 128, "h": 128, "layers": [], "markers": [{"cm": n, "tm": t, "dr": d} for n, t, d in marks]}))
+        return p
+
+    def test_a_normal_circular_idle_loop_passes(self):
+        write_frames(self.tmp / "c", [disc(k) for k in range(60)])
+        row, data = qa.check_markers(str(self.lottie(0, 60, [("idle", 0, 60)])), str(self.tmp / "c"))
+        self.assertEqual(row.status, qa.OK, row.line)
+        self.assertIn("ratio", data["pairs"][0])
+
+    def test_last_marker_ending_at_op_needs_no_frame_op(self):
+        write_frames(self.tmp / "c", [disc(k, 30) for k in range(30)])
+        row, data = qa.check_markers(str(self.lottie(0, 30, [("idle", 0, 30)])), str(self.tmp / "c"))
+        self.assertEqual(row.status, qa.OK, row.line)
+        self.assertEqual(data["missing_frames"], [])
+
+    def test_first_marker_after_frame_zero_checks_its_entry(self):
+        write_frames(self.tmp / "e", [square(2), square(3), square(50), square(51), square(52)])
+        row, data = qa.check_markers(str(self.lottie(0, 5, [("success", 2, 3)])), str(self.tmp / "e"))
+        self.assertNotEqual(row.status, qa.OK)
+        self.assertEqual([(p["a"], p["b"]) for p in data["pairs"]], [(1, 2)])
+
+
+class InputValidation(Tmp):
+    def test_bad_numbers_exit_2(self):
+        write_frames(self.tmp / "f", [square(2), square(5), square(9)])
+        for bad in ("0", "-1", "nan", "inf"):
+            self.assertEqual(cli("motion", self.tmp / "f", "--fps", bad)[0], 2, bad)
+            self.assertEqual(cli("report", "--dir", self.tmp / "f", "--fps", bad)[0], 2, bad)
+        for flag in ("--count", "--cols", "--width"):
+            self.assertEqual(cli("sheet", self.tmp / "f", "--out", self.tmp / "s.png", flag, "0")[0], 2, flag)
+
+    def test_non_numeric_lottie_fields_exit_2(self):
+        write_frames(self.tmp / "f", [square(2)] * 3)
+        for field in ("fr", "ip", "op"):
+            bad = self.tmp / f"{field}.json"
+            bad.write_text(json.dumps({"layers": [], "markers": [], field: "x"}))
+            code, _, err = cli("ink", self.tmp / "f", "--lottie", bad)
+            self.assertEqual(code, 2, field)
+            self.assertIn(field, err)
+
+    def test_output_paths_that_cannot_be_written_exit_2(self):
+        write_frames(self.tmp / "f", [square(2), square(5), square(9)])
+        (self.tmp / "dir").mkdir()
+        self.assertEqual(cli("motion", self.tmp / "f", "--json", self.tmp / "dir")[0], 2)
+        self.assertEqual(cli("report", "--dir", self.tmp / "f", "--out", self.tmp / "dir")[0], 2)
+        self.assertEqual(cli("sheet", self.tmp / "f", "--out", self.tmp / "dir")[0], 2)
+
+    def test_report_usage_lists_its_flags(self):
+        line = next(l for l in qa.__doc__.splitlines() if l.strip().startswith("asset_qa.py report"))
+        for flag in ("--sheet-dir", "--json", "--loop", "--common"):
+            self.assertIn(flag, line)
+
+
+@unittest.skipUnless(ENC, "ffmpeg and ffprobe are required")
+class GifRound3(Tmp):
+    def gif_ms(self, path):
+        with Image.open(path) as im:
+            return sum(f.info["duration"] for f in ImageSequence.Iterator(im))
+
+    def test_held_frames_do_not_abort_the_default_formats(self):
+        write_frames(self.tmp / "held", [square(2)] * 6 + [square(2 + k) for k in range(6)] + [square(9)] * 4)
+        r = encode(self.tmp / "held", self.tmp / "h")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for ext in ("gif", "webm", "apng", "mp4"):
+            self.assertTrue((self.tmp / f"h.{ext}").exists(), ext)
+        self.assertAlmostEqual(self.gif_ms(self.tmp / "h.gif"), 16 / 60 * 1000, delta=60)
+
+    def test_alpha_gif_plays_for_the_right_time(self):
+        for fps, n in ((30, 120), (24, 96), (60, 240)):
+            write_frames(self.tmp / f"d{fps}", [square(2 + k % 40) for k in range(n)])
+            r = encode(self.tmp / f"d{fps}", self.tmp / f"d{fps}", "--formats", "gif", "--fps", str(fps))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            want = n / fps * 1000
+            self.assertLessEqual(abs(self.gif_ms(self.tmp / f"d{fps}.gif") - want) / want, 0.01, fps)
+
+    def test_opaque_gif_plays_for_the_right_time(self):
+        write_frames(self.tmp / "o", [opaque(48, 48, 20 + 2 * k) for k in range(60)])
+        r = encode(self.tmp / "o", self.tmp / "o", "--formats", "gif", "--fps", "30")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertLessEqual(abs(self.gif_ms(self.tmp / "o.gif") - 2000) / 2000, 0.02)
+
+    def test_bad_fps_exits_2(self):
+        write_frames(self.tmp / "f", [square(2)] * 2)
+        for bad in ("0", "-5", "nan"):
+            self.assertEqual(encode(self.tmp / "f", self.tmp / "x", "--fps", bad).returncode, 2, bad)
 
 
 if __name__ == "__main__":

@@ -10,12 +10,15 @@
   asset_qa.py markers --lottie X.json|X.lottie DIR [--loop idle]   마커 경계 포즈 차이
   asset_qa.py themes  light=DIR dark=DIR … [--out sheet.png]   테마별 행 시트와 테마 간 차이(이름=폴더 두 개 이상)
   asset_qa.py sheet   DIR --out sheet.png [--count 12 --cols 6 --width 360]      시트 경로와 프레임 번호를 JSON 으로 출력
-  asset_qa.py report  --dir DIR [--lottie X] [--lottie-web DIR] [--engine DIR] [--theme name=DIR …] [--loop] [--common] [--fps 60] [--out qa/report.txt]
+  asset_qa.py report  --dir DIR [--lottie X] [--lottie-web DIR] [--engine DIR] [--theme name=DIR …] [--loop] [--common] [--fps 60] [--out qa/report.txt] [--json qa/report.json] [--sheet-dir qa]
 
 판정
   화소 수치는 회색 128 위에 합성한 채널 최대 절대차(0-255)다. 판정은 그림이 있는 영역(알파가 있는 화소, 불투명 캡처는 배경색과 다른 화소)에서
   가장 나쁜 프레임으로 정한다. JSON 의 mean_abs_diff 는 스파이크 harness/measure.py 와 같은 전체 화면 평균이라 비교할 수 있다.
   loop 의 비는 이음새 / max(중앙 변화, 0.05) 다(measure.py 는 하한이 없다).
+  report 는 --theme 시트를 --sheet-dir 에, 없으면 --out/--json 이 있는 폴더에 쓴다(둘 다 없으면 오류). 줄에 시트 경로를 적는다.
+  경계값(LIMITS): 플레이어 비교는 그림 영역 최악 프레임의 32 초과 화소 5% 초과가 ✗, 1.5% 또는 평균 5.0 초과가 △. 경로 비교는 20% 초과가 ✗,
+  평균 3.0 초과나 가장자리 채도 차이 0.01 초과가 △. 두 폴더의 배경색(불투명 캡처)이 24 넘게 다르면 ✗. 루프·마커 이음새 비는 1.5 초과가 △(마커는 3.0 초과 ✗, 루프는 ✗).
   report 의 루프 줄은 --loop 이거나 dotLottie manifest 가 loop 이면 건다. 아니면 "-" 로 두고, 마커 구간의 루프 이음새는 markers 줄이 본다.
   두 폴더의 프레임 번호가 다르면 ✗ 다. 듬성하게 캡처한 쪽(예: lottie-web 120프레임)과 비교하려면 players·routes·report 에 --common 을 붙인다. 줄에 비교한 개수를 적는다.
 종료 코드
@@ -45,11 +48,11 @@ GRID_SAMPLES = 24
 LIMITS = {
     "players_fail_pct32": 5.0, "players_warn_pct32": 1.5, "players_warn_mean": 5.0,
     "routes_warn_mean": 3.0, "routes_warn_gap": 0.01,
-    "loop_ok": 1.5,
+    "loop_ok": 1.5, "loop_warn": 3.0,
     "ink_min": 0.0005,
     "motion_fail_static": 0.95,
     "marker_ok": 1.0, "marker_warn": 3.0,
-    "themes_same_px": 4,
+    "themes_same_px": 4, "bg_diff": 24.0, "routes_fail_pct32": 20.0,
 }
 
 
@@ -112,11 +115,14 @@ def has_alpha(a):
     return float((a[..., 3] < 255).mean()) >= ALPHA_SHARE
 
 
+def background(a):
+    return None if has_alpha(a) else np.median(a[::16, ::16, :3].reshape(-1, 3), axis=0)
+
+
 def ink_mask(a):
     if has_alpha(a):
         return a[..., 3] > 16
-    bg = np.median(a[::16, ::16, :3].reshape(-1, 3), axis=0)
-    return np.abs(a[..., :3].astype(np.int16) - bg).max(axis=2) > 24
+    return np.abs(a[..., :3].astype(np.int16) - background(a)).max(axis=2) > 24
 
 
 def saturation(x):
@@ -149,13 +155,19 @@ def stack(imgs, bg=(30, 30, 30)):
 
 
 def save_png(img, path):
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    img.save(path)
+    try:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        img.save(path)
+    except (OSError, ValueError) as e:
+        raise ToolError(f"파일을 쓸 수 없다: {path} ({e.__class__.__name__}: {e})")
 
 
 def write_text(path, text):
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    Path(path).write_text(text)
+    try:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        Path(path).write_text(text)
+    except OSError as e:
+        raise ToolError(f"파일을 쓸 수 없다: {path} ({e.__class__.__name__}: {e})")
 
 
 def ranges(nums):
@@ -193,7 +205,8 @@ def diff_one(job):
     ca, cb = composite(xa), composite(xb)
     d = np.abs(ca - cb).max(axis=2)
     u = ma | mb
-    r = {"frame": i, "mean": float(d.mean()), "pct_over_32": float((d > 32).mean() * 100),
+    bga, bgb = background(xa), background(xb)
+    r = {"frame": i, "bg_diff": float(np.abs(bga - bgb).max()) if bga is not None and bgb is not None else 0.0, "mean": float(d.mean()), "pct_over_32": float((d > 32).mean() * 100),
          "cmean": float(d[u].mean()) if u.any() else 0.0, "cpct": float((d[u] > 32).mean() * 100) if u.any() else 0.0,
          "changed": int(((d > 16) & u).sum()), "ink_a": float(ma.mean()), "ink_b": float(mb.mean()),
          "alpha_a": has_alpha(xa), "alpha_b": has_alpha(xb)}
@@ -258,8 +271,9 @@ def diff_sheet(FA, FB, rows, path, top=6):
 
 def pair_flags(rows):
     blank = [r["frame"] for r in rows if (r["ink_a"] < LIMITS["ink_min"]) != (r["ink_b"] < LIMITS["ink_min"])]
-    alpha_diff = any(r["alpha_a"] for r in rows) != any(r["alpha_b"] for r in rows)
-    return blank, alpha_diff
+    alpha_diff = any(r["alpha_a"] != r["alpha_b"] for r in rows)
+    bg_off = [r["frame"] for r in rows if r["bg_diff"] > LIMITS["bg_diff"]]
+    return blank, alpha_diff, bg_off
 
 
 def finite(*vals):
@@ -271,15 +285,17 @@ def check_players(A, B, sheet=None, common_only=False):
     if problems or not rows:
         return Row("플레이어 차이", FAIL, "프레임 집합이 다르다: " + "; ".join(problems), "두 플레이어를 같은 프레임 범위로 다시 캡처한다"), {"problems": problems}
     s = diff_summary(rows)
-    blank, alpha_diff = pair_flags(rows)
+    blank, alpha_diff, bg_off = pair_flags(rows)
     note = f" [공통 {len(rows)}/{max(len(FA), len(FB))}프레임만 비교(--common)]" if common_only and len(rows) < max(len(FA), len(FB)) else ""
     wp, wm = s["content_pct_over_32"], s["content_mean_abs_diff"]
-    s["blank_one_side"] = blank
+    s["blank_one_side"], s["background_differs"] = blank, bg_off
     line = f"그림 영역 최악 f{wp['worst_frame']} 32 초과 {wp['max']}%·평균 {wm['max']}, 전체 평균 {s['mean_abs_diff']['avg']} /255 ({s['frames']}프레임)" + note
     if not finite(wp["max"], wm["max"]):
         st, fix = FAIL, "수치가 유한하지 않다. 프레임을 다시 캡처한다"
     elif blank:
         st, fix, line = FAIL, "한쪽 플레이어가 빈 화면을 그렸다. 그 플레이어가 지원하지 않는 기능이 있는지 본다", f"한쪽만 빈 프레임 {ranges(blank)}; " + line
+    elif bg_off:
+        st, fix, line = FAIL, "두 플레이어의 배경색이 다르다. 배경 설정(투명·불투명, 색)을 같게 한다", f"배경색이 다른 프레임 {ranges(bg_off)}; " + line
     elif wp["max"] > LIMITS["players_fail_pct32"]:
         st, fix = FAIL, "두 플레이어가 다르게 그린다. 글자별 애니메이터·텍스트 레이어·지원 안 되는 기능을 외곽선과 기본 도형으로 바꾼다"
     elif wp["max"] > LIMITS["players_warn_pct32"] or wm["max"] > LIMITS["players_warn_mean"]:
@@ -310,7 +326,7 @@ def check_routes(A, B, grid=8, sheet=None, common_only=False):
     if problems or not rows:
         return Row("경로 차이", FAIL, "프레임 집합이 다르다: " + "; ".join(problems), "두 경로를 같은 프레임 범위로 다시 렌더한다"), {"problems": problems}
     s = diff_summary(rows)
-    blank, alpha_diff = pair_flags(rows)
+    blank, alpha_diff, bg_off = pair_flags(rows)
     note = f" [공통 {len(rows)}/{max(len(FA), len(FB))}프레임만 비교(--common)]" if common_only and len(rows) < max(len(FA), len(FB)) else ""
     out = {}
     for key in ("sat", "level"):
@@ -320,14 +336,19 @@ def check_routes(A, B, grid=8, sheet=None, common_only=False):
             for c in range(grid):
                 zones[region_label(r, c, grid)].append(mean[r][c])
         out[key] = {"grid": [[round(float(v), 4) for v in row] for row in mean], **{z: round(float(np.mean(v)), 4) for z, v in zones.items() if v}}
-    s.update(grid=grid, blank_one_side=blank, saturation_A_minus_B=out["sat"], level_A_minus_B=out["level"])
+    s.update(grid=grid, blank_one_side=blank, background_differs=bg_off, saturation_A_minus_B=out["sat"], level_A_minus_B=out["level"])
     m, gap = s["mean_abs_diff"]["avg"], out["sat"]["가장자리"]
-    line = (f"평균 {m} /255, 채도 차이 가장자리 {gap:+.4f} 가운데 {out['sat']['가운데']:+.4f}, "
+    wp = s["content_pct_over_32"]
+    line = (f"평균 {m} /255, 그림 영역 최악 f{wp['worst_frame']} 32 초과 {wp['max']}%, 채도 차이 가장자리 {gap:+.4f} 가운데 {out['sat']['가운데']:+.4f}, "
             f"밝기 차이 가장자리 {out['level']['가장자리']:+.3f} 가운데 {out['level']['가운데']:+.3f}") + note
     if not finite(m, gap, out["sat"]["가운데"]):
         st, fix = FAIL, "수치가 유한하지 않다. 프레임을 다시 렌더한다"
     elif blank:
         st, fix, line = FAIL, "한 경로가 빈 화면을 낸다. 그 출력기의 오류와 빠진 노드를 본다", f"한쪽만 빈 프레임 {ranges(blank)}; " + line
+    elif bg_off:
+        st, fix, line = FAIL, "두 경로의 배경색이 다르다. 배경 설정과 색 관리를 같게 한다", f"배경색이 다른 프레임 {ranges(bg_off)}; " + line
+    elif wp["max"] > LIMITS["routes_fail_pct32"]:
+        st, fix = FAIL, "한 프레임이라도 두 경로의 그림이 크게 다르다. 그 프레임을 시트로 열어 어느 출력기가 틀렸는지 본다"
     elif abs(gap) > LIMITS["routes_warn_gap"]:
         st, fix = WARN, "한 경로의 가장자리 채도가 다르다. 엔진 쪽 색 관리(sRGB, 흐린 배경의 알파 합성)와 인코딩 색 태그를 확인한다"
     elif m > LIMITS["routes_warn_mean"]:
@@ -414,6 +435,10 @@ def load_lottie(path):
         v = data.get(key, [])
         if not isinstance(v, list) or not all(isinstance(x, dict) for x in v):
             raise ToolError(f"Lottie 형식 오류: {key} 가 객체 배열이 아니다 ({path})")
+    for key in ("fr", "ip", "op"):
+        v = data.get(key, 0)
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not np.isfinite(v):
+            raise ToolError(f"Lottie 형식 오류: {key} 가 숫자가 아니다 ({path})")
     anims = manifest.get("animations") if isinstance(manifest, dict) else None
     loop = bool(anims and isinstance(anims, list) and isinstance(anims[0], dict) and anims[0].get("loop"))
     return data, loop
@@ -497,6 +522,13 @@ def pose_diff(F, a, b):
     return round(float(d[u].mean()) if u.any() else 0.0, 3)
 
 
+def segment_step(F, a, b):
+    nums = [i for i in range(a, b + 1) if i in F]
+    if len(nums) < 2 or nums != list(range(nums[0], nums[-1] + 1)):
+        return None
+    return float(np.median([pose_diff(F, nums[k], nums[k + 1]) for k in range(len(nums) - 1)]))
+
+
 def check_markers(lottie, d, loop_names=("idle", "loop")):
     data, _ = load_lottie(lottie)
     ip = data.get("ip", 0)
@@ -510,24 +542,36 @@ def check_markers(lottie, d, loop_names=("idle", "loop")):
     pairs, missing = [], set()
     for k, m in enumerate(marks):
         wanted = []
-        if k > 0:
-            wanted.append((f"{m['name']} 진입", m["from"] - 1, m["from"]))
+        if m["from"] > 0:
+            wanted.append((f"{m['name']} 진입", m["from"] - 1, m["from"], "entry"))
         if m["name"] in loop_names:
-            wanted += [(f"{m['name']} 루프", m["to"] - 1, m["from"]), (f"{m['name']} 닫힘", m["from"], m["to"])]
-        for name, a, b in wanted:
+            wanted.append((f"{m['name']} 루프", m["to"] - 1, m["from"], "seam"))
+            if m["to"] in F and m["from"] in F:
+                wanted.append((f"{m['name']} 닫힘", m["from"], m["to"], "closing"))
+        for name, a, b, kind in wanted:
             gone = {x for x in (a, b) if x not in F}
             if gone:
                 missing |= gone
-            else:
-                pairs.append({"pair": name, "a": a, "b": b, "diff": pose_diff(F, a, b)})
+                continue
+            pair = {"pair": name, "a": a, "b": b, "kind": kind, "diff": pose_diff(F, a, b)}
+            if kind == "seam":
+                step = segment_step(F, m["from"], m["to"] - 1)
+                if step is not None:
+                    pair["median_step"], pair["ratio"] = round(step, 3), round(pair["diff"] / max(step, STATIC_STEP), 2)
+            pairs.append(pair)
     s = {"markers": marks, "pairs": pairs, "missing_frames": sorted(missing)}
-    judged = [p["diff"] for p in pairs if not p["pair"].endswith("닫힘")]
-    worst = max(judged, default=0.0)
-    line = f"마커 {len(marks)}개, " + ", ".join(f"{p['pair']} f{p['a']}↔f{p['b']} {p['diff']}" for p in pairs)
-    if worst > LIMITS["marker_warn"]:
-        return Row("마커 경계", FAIL, line, "경계 포즈가 튄다. 마커 경계의 끝 포즈와 시작 포즈를 맞춘다"), s
-    if worst > LIMITS["marker_ok"]:
-        return Row("마커 경계", WARN, line, "경계 포즈가 조금 튄다. 마커 경계의 끝 포즈와 시작 포즈를 맞춘다"), s
+    state = OK
+    for p in pairs:
+        if p["kind"] == "closing":
+            continue
+        if "ratio" in p:
+            level = OK if p["ratio"] <= LIMITS["loop_ok"] else WARN if p["ratio"] <= LIMITS["loop_warn"] else FAIL
+        else:
+            level = OK if p["diff"] <= LIMITS["marker_ok"] else WARN if p["diff"] <= LIMITS["marker_warn"] else FAIL
+        state = max(state, level, key=(OK, WARN, FAIL).index)
+    line = f"마커 {len(marks)}개, " + ", ".join(f"{p['pair']} f{p['a']}↔f{p['b']} {p['diff']}" + (f"(비 {p['ratio']})" if "ratio" in p else "") for p in pairs)
+    if state != OK:
+        return Row("마커 경계", state, line, "경계 포즈가 튄다. 마커 경계의 끝 포즈와 시작 포즈를 맞춘다(루프 구간은 끝 직전 프레임이 시작 프레임으로 이어져야 한다)"), s
     if missing:
         return Row("마커 경계", WARN, f"검사하지 못한 경계 프레임 {ranges(missing)}; " + line, "마커 경계 프레임까지 캡처한다(render.mjs 를 --every 없이 실행)"), s
     return Row("마커 경계", OK, line, ""), s
@@ -559,9 +603,9 @@ def check_themes(themes, out=None, count=6, width=240):
     pairs, same = [], []
     for a in range(len(names)):
         for b in range(a + 1, len(names)):
-            rows = [diff_one((dirs[names[a]][i], dirs[names[b]][i], i, 0)) for i in pick]
+            rows = pmap(diff_one, [(dirs[names[a]][i], dirs[names[b]][i], i, 0) for i in common], is_big(base))
             changed = max(r["changed"] for r in rows)
-            pairs.append({"a": names[a], "b": names[b], "max_changed_pixels": changed, "content_mean_diff": round(float(np.mean([r["cmean"] for r in rows])), 3)})
+            pairs.append({"a": names[a], "b": names[b], "max_changed_pixels": changed, "frames_compared": len(common), "content_mean_diff": round(float(np.mean([r["cmean"] for r in rows])), 3)})
             if changed < LIMITS["themes_same_px"]:
                 same.append((names[a], names[b]))
     s = {"themes": names, "frames": pick, "pairs": pairs}
@@ -632,7 +676,15 @@ def run_report(a):
     if a.lottie:
         add("markers", check_markers(a.lottie, a.dir))
     if a.theme:
-        add("themes", check_themes(parse_themes(a.theme), out=str(Path(a.sheet_dir or Path(a.dir).parent) / "sheet_themes.png")))
+        themes = parse_themes(a.theme)
+        where = a.sheet_dir or (Path(a.out or a.json).parent if (a.out or a.json) else None)
+        if where is None:
+            raise ToolError("테마 시트를 쓸 폴더가 필요하다: --sheet-dir 이나 --out/--json 을 준다")
+        for name, folder in themes:
+            add(f"ink_theme_{name}", check_ink(folder, name=f"잉크(테마 {name})"))
+        sheet = str(Path(where) / "sheet_themes.png")
+        add("themes", check_themes(themes, out=sheet))
+        rows[-1].line += f" (시트 {sheet})"
     return rows, data
 
 
@@ -682,7 +734,14 @@ def build_parser():
     return p
 
 
+def positive(**named):
+    for name, v in named.items():
+        if v is not None and not (np.isfinite(v) and v > 0):
+            raise ToolError(f"--{name} 는 0 보다 큰 숫자여야 한다: {v}")
+
+
 def run(a):
+    positive(fps=getattr(a, "fps", None), count=getattr(a, "count", None), cols=getattr(a, "cols", None), width=getattr(a, "width", None))
     if a.cmd == "players":
         return emit(*check_players(a.A, a.B, a.sheet, a.common), a.json)
     if a.cmd == "routes":
@@ -715,6 +774,9 @@ def main():
         sys.exit(run(build_parser().parse_args()))
     except ToolError as e:
         print(f"오류: {e}", file=sys.stderr)
+        sys.exit(2)
+    except Exception as e:
+        print(f"오류: 예기치 못한 {e.__class__.__name__}: {e}", file=sys.stderr)
         sys.exit(2)
 
 
