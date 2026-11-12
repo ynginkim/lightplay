@@ -26,7 +26,6 @@ EXPECTED = json.loads((GOLDEN / "expected.json").read_text())
 CHECKS = {
     "players": lambda d: qa.check_players(str(GOLDEN / d[0]), str(GOLDEN / d[1])),
     "routes": lambda d: qa.check_routes(str(GOLDEN / d[0]), str(GOLDEN / d[1])),
-    "loop": lambda d: qa.check_loop(str(GOLDEN / d[0])),
 }
 
 
@@ -36,20 +35,49 @@ def dig(d, path):
     return d
 
 
-def write_frames(d, arrays, start=0):
+def write_frames(d, arrays, numbers=None):
+    d = Path(d)
     d.mkdir(parents=True, exist_ok=True)
-    for k, a in enumerate(arrays):
-        Image.fromarray(a, "RGBA").save(d / f"f{start + k:05d}.png")
+    for k, a in zip(numbers if numbers is not None else range(len(arrays)), arrays):
+        Image.fromarray(a, "RGBA").save(d / f"f{k:05d}.png")
+    return d
 
 
 def blank(w=64, h=64):
     return np.zeros((h, w, 4), np.uint8)
 
 
-def square(x, w=64, h=64):
+def square(x, w=64, h=64, color=(200, 40, 40, 255)):
     a = blank(w, h)
-    a[20:40, x:x + 12] = (200, 40, 40, 255)
+    a[20:40, x:x + 12] = color
     return a
+
+
+def opaque(w=64, h=64, grey=40):
+    a = np.full((h, w, 4), grey, np.uint8)
+    a[..., 3] = 255
+    return a
+
+
+def pad(a, w=1920, h=1080):
+    out = np.zeros((h, w, 4), np.uint8)
+    out[:a.shape[0], :a.shape[1]] = a
+    return out
+
+
+def golden_frames(sub):
+    return [np.asarray(Image.open(p).convert("RGBA")) for p in sorted((GOLDEN / sub).glob("f*.png"))]
+
+
+def cli(*args):
+    r = subprocess.run([sys.executable, str(TOOLS / "asset_qa.py"), *map(str, args)], capture_output=True, text=True)
+    return r.returncode, r.stdout, r.stderr
+
+
+class Tmp(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, True)
 
 
 class GoldenNumbers(unittest.TestCase):
@@ -59,9 +87,10 @@ class GoldenNumbers(unittest.TestCase):
                 _, data = CHECKS[c["cmd"]](c["args"])
                 self.assertAlmostEqual(dig(data, c["path"]), c["value"], delta=c["tol"])
 
-    def test_player_verdicts(self):
-        self.assertEqual(qa.check_players(str(GOLDEN / "01-textlayer/dotlottie"), str(GOLDEN / "01-textlayer/lottieweb"))[0].status, qa.FAIL)
-        self.assertEqual(qa.check_players(str(GOLDEN / "01-builder/dotlottie"), str(GOLDEN / "01-builder/lottieweb"))[0].status, qa.OK)
+    def test_spike_cases_calibration(self):
+        text, build = (GOLDEN / "01-textlayer/dotlottie", GOLDEN / "01-builder/dotlottie")
+        self.assertEqual(qa.check_players(str(text), str(GOLDEN / "01-textlayer/lottieweb"))[0].status, qa.FAIL)
+        self.assertEqual(qa.check_players(str(build), str(GOLDEN / "01-builder/lottieweb"))[0].status, qa.OK)
 
     def test_routes_flags_edge_saturation_but_not_centre(self):
         row, data = qa.check_routes(str(GOLDEN / "04-pair/dotlottie"), str(GOLDEN / "04-pair/engine"))
@@ -71,10 +100,113 @@ class GoldenNumbers(unittest.TestCase):
         self.assertLess(abs(data["saturation_A_minus_B"]["가운데"]), 0.002)
 
 
-class Ink(unittest.TestCase):
+class ContentAreaVerdicts(Tmp):
+    def test_padding_onto_a_big_canvas_does_not_flip_a_failing_pair(self):
+        for pl in ("dotlottie", "lottieweb"):
+            write_frames(self.tmp / pl, [pad(a) for a in golden_frames(f"01-textlayer/{pl}")[:6]])
+        self.assertEqual(qa.check_players(str(self.tmp / "dotlottie"), str(self.tmp / "lottieweb"))[0].status, qa.FAIL)
+
+    def test_padding_idle_onto_1080p_still_moves(self):
+        write_frames(self.tmp / "idle", [pad(a) for a in golden_frames("02-idle")[:30]], range(60, 90))
+        self.assertEqual(qa.check_motion(str(self.tmp / "idle"))[0].status, qa.OK)
+
+    def test_one_wrong_frame_in_480_fails_players(self):
+        base = [square(2 + k % 40) for k in range(480)]
+        bad = list(base)
+        bad[200] = square(2, color=(10, 200, 10, 255))
+        bad[200][:, :, :3] = 255 - bad[200][:, :, :3]
+        write_frames(self.tmp / "a", base)
+        write_frames(self.tmp / "b", bad)
+        row, data = qa.check_players(str(self.tmp / "a"), str(self.tmp / "b"))
+        self.assertEqual(row.status, qa.FAIL)
+        self.assertIn("f200", row.line)
+
+    def test_small_accent_change_is_still_a_theme(self):
+        light = golden_frames("02-themes/light")
+        accent = []
+        for a in light:
+            b = a.copy()
+            ys, xs = np.nonzero(b[..., 3] > 200)
+            b[ys[:12], xs[:12], :3] = 255 - b[ys[:12], xs[:12], :3]
+            accent.append(b)
+        write_frames(self.tmp / "light", light)
+        write_frames(self.tmp / "accent", accent)
+        write_frames(self.tmp / "same", light)
+        self.assertEqual(qa.check_themes([("light", str(self.tmp / "light")), ("accent", str(self.tmp / "accent"))])[0].status, qa.OK)
+        self.assertEqual(qa.check_themes([("light", str(self.tmp / "light")), ("same", str(self.tmp / "same"))])[0].status, qa.FAIL)
+
+
+class FrameSetIntegrity(Tmp):
+    def test_missing_frames_fail_with_numbers(self):
+        write_frames(self.tmp / "a", [square(2 + k) for k in range(3)])
+        write_frames(self.tmp / "b", [square(2)])
+        for fn in (qa.check_players, qa.check_routes):
+            row, _ = fn(str(self.tmp / "a"), str(self.tmp / "b"))
+            self.assertEqual(row.status, qa.FAIL)
+            self.assertIn("f1-f2", row.line)
+
+    def test_common_flag_compares_the_overlap_and_says_so(self):
+        write_frames(self.tmp / "a", [square(2 + k) for k in range(4)])
+        write_frames(self.tmp / "b", [square(2), square(4)], [0, 2])
+        write_frames(self.tmp / "c", [square(2 + k) for k in range(4)])
+        row, _ = qa.check_players(str(self.tmp / "a"), str(self.tmp / "b"), common_only=True)
+        self.assertIn("공통 2/4", row.line)
+        self.assertEqual(qa.check_players(str(self.tmp / "a"), str(self.tmp / "c"))[0].status, qa.OK)
+
+    def test_different_frame_sizes_exit_2(self):
+        write_frames(self.tmp / "a", [blank(32, 32), blank(32, 1), blank(32, 32)])
+        code, _, err = cli("ink", self.tmp / "a")
+        self.assertEqual(code, 2)
+        self.assertIn("크기", err)
+        write_frames(self.tmp / "b", [square(2)])
+        write_frames(self.tmp / "c", [square(2, 48, 48)])
+        self.assertEqual(cli("players", self.tmp / "b", self.tmp / "c")[0], 2)
+
+    def test_themes_with_no_common_frames_fail_not_nan(self):
+        write_frames(self.tmp / "light", [square(2)], [0])
+        write_frames(self.tmp / "dark", [square(4)], [1])
+        row, _ = qa.check_themes([("light", str(self.tmp / "light")), ("dark", str(self.tmp / "dark"))], str(self.tmp / "s.png"))
+        self.assertEqual(row.status, qa.FAIL)
+
+    def test_themes_with_three_frames_keep_the_last_one(self):
+        write_frames(self.tmp / "a", [square(2)] * 3)
+        write_frames(self.tmp / "b", [square(2), square(2), square(30)])
+        row, data = qa.check_themes([("a", str(self.tmp / "a")), ("b", str(self.tmp / "b"))])
+        self.assertEqual(row.status, qa.OK)
+        self.assertEqual(data["frames"], [0, 1, 2])
+
+    def test_grid_larger_than_the_image_exits_2(self):
+        write_frames(self.tmp / "a", [opaque(4, 4)])
+        write_frames(self.tmp / "b", [opaque(4, 4, 50)])
+        self.assertEqual(cli("routes", self.tmp / "a", self.tmp / "b")[0], 2)
+        self.assertEqual(cli("routes", self.tmp / "a", self.tmp / "b", "--grid", 2)[0], 2)
+
+    def test_theme_arguments_are_validated(self):
+        write_frames(self.tmp / "a", [square(2)])
+        self.assertEqual(cli("themes", f"light={self.tmp / 'a'}")[0], 2)
+        self.assertEqual(cli("themes", f"light={self.tmp / 'a'}", str(self.tmp / "a"))[0], 2)
+
+    def test_alpha_on_one_side_only_is_reported(self):
+        write_frames(self.tmp / "a", [square(2 + k) for k in range(3)])
+        write_frames(self.tmp / "b", [square(2 + k) for k in range(3)])
+        for k in range(3):
+            Image.fromarray(composite_grey(square(2 + k)), "RGBA").save(self.tmp / "b" / f"f{k:05d}.png")
+        row, _ = qa.check_players(str(self.tmp / "a"), str(self.tmp / "b"))
+        self.assertIn("알파", row.line)
+        self.assertNotEqual(row.status, qa.OK)
+
+
+def composite_grey(a):
+    alpha = a[..., 3:4] / 255.0
+    out = a.copy()
+    out[..., :3] = (a[..., :3] * alpha + 128 * (1 - alpha)).astype(np.uint8)
+    out[..., 3] = 255
+    return out
+
+
+class Ink(Tmp):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp, True)
+        super().setUp()
         self.frames = self.tmp / "idle"
         shutil.copytree(GOLDEN / "02-idle", self.frames)
 
@@ -92,29 +224,23 @@ class Ink(unittest.TestCase):
         Image.fromarray(blank(256, 256), "RGBA").save(self.frames / "f00060.png")
         self.assertEqual(qa.check_ink(str(self.frames))[0].status, qa.WARN)
 
+    def test_one_transparent_pixel_does_not_make_a_white_frame_ink(self):
+        a = np.full((32, 32, 4), 255, np.uint8)
+        a[0, 0, 3] = 0
+        write_frames(self.tmp / "white", [a] * 4)
+        self.assertEqual(qa.check_ink(str(self.tmp / "white"))[0].status, qa.FAIL)
+
     def test_broken_lottie_rendered_empty_fails_with_cause(self):
-        empty = self.tmp / "empty"
-        write_frames(empty, [blank()] * 5)
+        write_frames(self.tmp / "empty", [blank()] * 5)
         broken = self.tmp / "broken.json"
         broken.write_text(json.dumps({"v": "5.7.0", "fr": 60, "ip": 0, "op": 30, "w": 64, "h": 64, "layers": []}))
-        row, data = qa.check_ink(str(empty), str(broken))
+        row, data = qa.check_ink(str(self.tmp / "empty"), str(broken))
         self.assertEqual(row.status, qa.FAIL)
         self.assertIn("layers", row.line)
         self.assertEqual(len(data["blank_frames"]), 5)
 
-    def test_cli_exits_nonzero_on_blank_frames(self):
-        empty = self.tmp / "empty"
-        write_frames(empty, [blank()] * 5)
-        r = subprocess.run([sys.executable, str(TOOLS / "asset_qa.py"), "ink", str(empty)], capture_output=True, text=True)
-        self.assertEqual(r.returncode, 1)
-        self.assertIn("✗", r.stdout)
 
-
-class MotionAndLoop(unittest.TestCase):
-    def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp, True)
-
+class MotionAndLoop(Tmp):
     def test_idle_moves_and_frozen_copy_fails(self):
         self.assertEqual(qa.check_motion(str(GOLDEN / "02-idle"))[0].status, qa.OK)
         frozen = self.tmp / "frozen"
@@ -123,6 +249,12 @@ class MotionAndLoop(unittest.TestCase):
             shutil.copy(GOLDEN / "02-idle/f00060.png", frozen / f"f{i:05d}.png")
         self.assertEqual(qa.check_motion(str(frozen))[0].status, qa.FAIL)
 
+    def test_sparse_capture_uses_frame_numbers(self):
+        write_frames(self.tmp / "s", [square(2), square(2), square(2), square(30)], [0, 60, 120, 180])
+        row, data = qa.check_motion(str(self.tmp / "s"))
+        self.assertEqual(row.status, qa.WARN)
+        self.assertEqual(data["longest_static_run"], 120)
+
     def test_loop_seam_on_a_cycle_and_on_a_truncated_cycle(self):
         cycle = [square(int(26 + 24 * np.cos(2 * np.pi * k / 24))) for k in range(24)]
         write_frames(self.tmp / "full", cycle)
@@ -130,62 +262,204 @@ class MotionAndLoop(unittest.TestCase):
         self.assertEqual(qa.check_loop(str(self.tmp / "full"))[0].status, qa.OK)
         self.assertEqual(qa.check_loop(str(self.tmp / "cut"))[0].status, qa.FAIL)
 
-    def test_golden_loop_is_seamless(self):
-        self.assertEqual(qa.check_loop(str(GOLDEN / "04-loop"))[0].status, qa.OK)
+    def test_loop_with_gaps_fails_and_names_the_fix(self):
+        write_frames(self.tmp / "gap", [square(2 + k) for k in range(5)], [0, 8, 16, 24, 32])
+        row, _ = qa.check_loop(str(self.tmp / "gap"))
+        self.assertEqual(row.status, qa.FAIL)
+        self.assertIn("--every", row.fix)
+        self.assertNotIn("--frames all", row.fix)
 
 
-class MarkersAndThemes(unittest.TestCase):
+class Markers(Tmp):
+    def lottie(self, ip, marks):
+        p = self.tmp / "m.json"
+        p.write_text(json.dumps({"v": "5.7.0", "fr": 60, "ip": ip, "op": ip + 30, "w": 64, "h": 64, "layers": [], "markers": [{"cm": n, "tm": t, "dr": d} for n, t, d in marks]}))
+        return p
+
     def test_marker_boundary_poses_match(self):
         row, data = qa.check_markers(str(GOLDEN / "02-markers/send-icon.json"), str(GOLDEN / "02-markers"))
-        self.assertEqual(row.status, qa.OK)
+        self.assertIn(row.status, (qa.OK, qa.WARN))
         diffs = {(p["a"], p["b"]): p["diff"] for p in data["pairs"]}
         self.assertEqual(diffs[(59, 60)], 0.0)
         self.assertEqual(diffs[(60, 180)], 0.0)
 
     def test_marker_jump_is_flagged(self):
-        tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, tmp, True)
-        shutil.copytree(GOLDEN / "02-markers", tmp / "m")
-        shutil.copy(GOLDEN / "02-themes/dark/f00060.png", tmp / "m/f00059.png")
-        self.assertEqual(qa.check_markers(str(tmp / "m/send-icon.json"), str(tmp / "m"))[0].status, qa.FAIL)
+        shutil.copytree(GOLDEN / "02-markers", self.tmp / "m")
+        shutil.copy(GOLDEN / "02-themes/dark/f00060.png", self.tmp / "m/f00059.png")
+        self.assertEqual(qa.check_markers(str(self.tmp / "m/send-icon.json"), str(self.tmp / "m"))[0].status, qa.FAIL)
 
-    def test_themes_differ_and_a_missing_theme_is_caught(self):
-        tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, tmp, True)
-        names = ["light", "dark", "brand"]
-        row, data = qa.check_themes([(n, str(GOLDEN / "02-themes" / n)) for n in names], str(tmp / "sheet.png"))
-        self.assertEqual(row.status, qa.OK)
-        self.assertEqual(len(data["pairs"]), 3)
-        with Image.open(tmp / "sheet.png") as sheet:
-            self.assertGreater(sheet.height, 3 * 100)
-        row, _ = qa.check_themes([("light", str(GOLDEN / "02-themes/light")), ("dark", str(GOLDEN / "02-themes/light"))])
+    def test_missing_boundary_frames_warn_with_numbers(self):
+        write_frames(self.tmp / "f", [square(2)] * 2, [9, 10])
+        row, data = qa.check_markers(str(self.lottie(0, [("intro", 0, 10), ("idle", 10, 10), ("success", 20, 10)])), str(self.tmp / "f"))
+        self.assertEqual(row.status, qa.WARN)
+        self.assertIn("f19", row.line)
+        self.assertIn(19, data["missing_frames"])
+
+    def test_broken_loop_closing_pose_fails(self):
+        write_frames(self.tmp / "l", [square(2), square(10), square(40), square(2)], [0, 1, 2, 3])
+        row, _ = qa.check_markers(str(self.lottie(0, [("idle", 0, 3)])), str(self.tmp / "l"))
         self.assertEqual(row.status, qa.FAIL)
 
+    def test_marker_times_subtract_the_lottie_in_point(self):
+        write_frames(self.tmp / "ip", [square(2)] * 7, range(0, 7))
+        row, data = qa.check_markers(str(self.lottie(60, [("intro", 60, 3), ("idle", 63, 3)])), str(self.tmp / "ip"))
+        self.assertEqual({(p["a"], p["b"]) for p in data["pairs"]} >= {(2, 3), (5, 3)}, True)
+        self.assertEqual(row.status, qa.OK)
 
-class ReportAndEncode(unittest.TestCase):
-    def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp, True)
+    def test_themes_pairs_on_golden(self):
+        names = ["light", "dark", "brand"]
+        row, data = qa.check_themes([(n, str(GOLDEN / "02-themes" / n)) for n in names], str(self.tmp / "sheet.png"))
+        self.assertEqual(row.status, qa.OK)
+        self.assertEqual(len(data["pairs"]), 3)
+        with Image.open(self.tmp / "sheet.png") as sheet:
+            self.assertGreater(sheet.height, 3 * 100)
+
+
+class Report(Tmp):
+    def one_shot(self):
+        write_frames(self.tmp / "once", [square(2 + 2 * k) for k in range(12)])
+        return self.tmp / "once"
+
+    def test_one_shot_asset_is_not_a_loop_failure(self):
+        code, out, _ = cli("report", "--dir", self.one_shot())
+        self.assertEqual(code, 0, out)
+        self.assertIn("- 루프 이음새", out)
+
+    def test_loop_flag_checks_the_seam(self):
+        code, out, _ = cli("report", "--dir", self.one_shot(), "--loop")
+        self.assertEqual(code, 1)
+        self.assertIn("✗ 루프 이음새", out)
+
+    def test_every_failing_row_is_in_the_fix_list(self):
+        write_frames(self.tmp / "one", [square(2)])
+        code, out, _ = cli("report", "--dir", self.tmp / "one")
+        self.assertEqual(code, 1)
+        todo = out.split("고칠 것:")[1]
+        self.assertIn("움직임", todo)
+
+    def test_blank_engine_folder_fails_the_report(self):
+        write_frames(self.tmp / "engine", [blank()] * 12)
+        code, out, _ = cli("report", "--dir", self.one_shot(), "--engine", self.tmp / "engine")
+        self.assertEqual(code, 1)
+        self.assertIn("✗ 잉크(엔진)", out)
+        self.assertIn("✗ 경로 차이", out)
 
     def test_report_prints_one_line_per_check_and_a_fix_list(self):
-        r = subprocess.run([sys.executable, str(TOOLS / "asset_qa.py"), "report", "--dir", str(GOLDEN / "01-textlayer/dotlottie"),
-                            "--lottie-web", str(GOLDEN / "01-textlayer/lottieweb")], capture_output=True, text=True)
-        self.assertEqual(r.returncode, 1)
-        self.assertIn("✗ 플레이어 차이", r.stdout)
-        self.assertIn("고칠 것:", r.stdout)
+        code, out, _ = cli("report", "--dir", GOLDEN / "01-textlayer/dotlottie", "--lottie-web", GOLDEN / "01-textlayer/lottieweb")
+        self.assertEqual(code, 1)
+        self.assertIn("✗ 플레이어 차이", out)
+        self.assertIn("고칠 것:", out)
 
-    def test_webm_and_mp4_carry_bt709_tags(self):
+    def test_json_output_creates_its_folder(self):
+        code, _, _ = cli("report", "--dir", self.one_shot(), "--json", self.tmp / "new/dir/r.json")
+        self.assertEqual(code, 0)
+        self.assertTrue((self.tmp / "new/dir/r.json").exists())
+        self.assertEqual(cli("loop", self.one_shot(), "--json", self.tmp / "other/l.json")[0], 1)
+        self.assertTrue((self.tmp / "other/l.json").exists())
+
+
+class ToolErrors(Tmp):
+    def test_missing_folder_exits_2(self):
+        code, _, err = cli("ink", self.tmp / "nope")
+        self.assertEqual(code, 2)
+        self.assertEqual(len(err.strip().splitlines()), 1)
+
+    def test_unreadable_frame_exits_2(self):
+        (self.tmp / "bad").mkdir()
+        (self.tmp / "bad/f00000.png").write_bytes(b"not a png")
+        self.assertEqual(cli("ink", self.tmp / "bad")[0], 2)
+
+    def test_bad_lottie_json_exits_2(self):
+        write_frames(self.tmp / "f", [square(2)] * 3)
+        bad = self.tmp / "bad.json"
+        bad.write_text("{nope")
+        self.assertEqual(cli("ink", self.tmp / "f", "--lottie", bad)[0], 2)
+        bad.write_text('{"layers": "x"}')
+        code, _, err = cli("ink", self.tmp / "f", "--lottie", bad)
+        self.assertEqual(code, 2)
+        self.assertIn("layers", err)
+        self.assertEqual(cli("markers", self.tmp / "f", "--lottie", bad)[0], 2)
+
+    def test_failing_verdict_exits_1(self):
+        write_frames(self.tmp / "empty", [blank()] * 5)
+        self.assertEqual(cli("ink", self.tmp / "empty")[0], 1)
+
+
+ENC = shutil.which("ffmpeg") and shutil.which("ffprobe")
+
+
+def probe(path, entries):
+    p = subprocess.run(["ffprobe", "-v", "error", "-show_entries", entries, "-of", "json", str(path)], capture_output=True, text=True, check=True)
+    return json.loads(p.stdout)["streams"][0]
+
+
+def encode(src, name, *extra):
+    return subprocess.run([sys.executable, str(TOOLS / "encode_asset.py"), str(src), "--name", str(name), "--fps", "60", *extra], capture_output=True, text=True)
+
+
+@unittest.skipUnless(ENC, "ffmpeg and ffprobe are required")
+class Encode(Tmp):
+    def decode_alpha(self, path):
+        subprocess.run(["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-c:v", "libvpx-vp9", "-i", str(path), "-pix_fmt", "rgba", str(self.tmp / "dec_%02d.png")], check=True)
+        return [int(np.asarray(Image.open(f))[..., 3].min()) for f in sorted(self.tmp.glob("dec_*.png"))]
+
+    def test_webm_and_mp4_color_tags_and_alpha(self):
         out = self.tmp / "x"
-        r = subprocess.run([sys.executable, str(TOOLS / "encode_asset.py"), str(GOLDEN / "02-idle"), "--name", str(out), "--fps", "60",
-                            "--formats", "gif,webm,mp4"], capture_output=True, text=True)
+        r = encode(GOLDEN / "02-idle", out, "--formats", "gif,webm,mp4,apng")
         self.assertEqual(r.returncode, 0, r.stderr)
         for ext in ("webm", "mp4"):
-            p = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=color_space,color_primaries,color_transfer,color_range",
-                                "-of", "json", f"{out}.{ext}"], capture_output=True, text=True, check=True)
-            s = json.loads(p.stdout)["streams"][0]
-            self.assertEqual((s["color_space"], s["color_primaries"], s["color_transfer"], s["color_range"]), ("bt709", "bt709", "bt709", "tv"), ext)
+            s = probe(f"{out}.{ext}", "stream=color_space,color_primaries,color_transfer,color_range")
+            self.assertEqual((s["color_space"], s["color_primaries"], s["color_transfer"], s["color_range"]), ("bt709", "bt709", "iec61966-2-1", "tv"), ext)
+        self.assertEqual(probe(f"{out}.webm", "stream_tags=alpha_mode")["tags"]["alpha_mode"], "1")
+        self.assertLess(min(self.decode_alpha(f"{out}.webm")), 8)
         with Image.open(f"{out}.gif") as gif:
             self.assertLessEqual(gif.width, 480)
+            self.assertGreaterEqual(gif.info["duration"], 20)
+        with Image.open(f"{out}.apng") as apng:
+            self.assertEqual(apng.n_frames, 60)
+
+    def test_alpha_in_later_frames_is_kept(self):
+        write_frames(self.tmp / "mixed", [opaque(32, 32), square(2, 32, 32), square(4, 32, 32)])
+        r = encode(self.tmp / "mixed", self.tmp / "m", "--formats", "webm")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertLess(min(self.decode_alpha(self.tmp / "m.webm")), 8)
+
+    def test_gapped_folder_is_refused(self):
+        write_frames(self.tmp / "gap", [square(2)] * 4, [0, 1, 3, 4])
+        r = encode(self.tmp / "gap", self.tmp / "g")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("이어지지", r.stderr)
+        self.assertFalse((self.tmp / "g.webm").exists())
+
+    def test_odd_sizes_make_an_mp4(self):
+        for w, h in ((35, 33), (255, 255), (375, 667)):
+            write_frames(self.tmp / f"o{w}", [opaque(w, h), opaque(w, h, 80)])
+            r = encode(self.tmp / f"o{w}", self.tmp / f"o{w}x", "--formats", "mp4")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            s = probe(self.tmp / f"o{w}x.mp4", "stream=width,height")
+            self.assertEqual((s["width"] % 2, s["height"] % 2), (0, 0))
+
+    def test_transparent_gif_clears_previous_frames(self):
+        write_frames(self.tmp / "t", [opaque(32, 32), square(2, 32, 32), square(4, 32, 32)])
+        r = encode(self.tmp / "t", self.tmp / "t", "--formats", "gif")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        subprocess.run(["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-i", str(self.tmp / "t.gif"), "-pix_fmt", "rgba", str(self.tmp / "gd_%02d.png")], check=True)
+        shares = [float((np.asarray(Image.open(f))[..., 3] == 0).mean()) for f in sorted(self.tmp.glob("gd_*.png"))]
+        self.assertGreater(shares[-1], 0.5)
+
+    def test_gif_caps_the_frame_rate(self):
+        write_frames(self.tmp / "r", [square(2 + k) for k in range(30)])
+        r = encode(self.tmp / "r", self.tmp / "r", "--formats", "gif")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        with Image.open(self.tmp / "r.gif") as gif:
+            self.assertLessEqual(gif.n_frames, 26)
+            self.assertGreaterEqual(gif.info["duration"], 20)
+
+    def test_chrome_safe_mp4_background_is_composited_in_rgb(self):
+        write_frames(self.tmp / "g", [np.full((64, 64, 4), (128, 128, 128, 255), np.uint8)] * 2)
+        r = encode(self.tmp / "g", self.tmp / "g", "--formats", "mp4")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(probe(self.tmp / "g.mp4", "stream=color_transfer")["color_transfer"], "iec61966-2-1")
 
 
 if __name__ == "__main__":

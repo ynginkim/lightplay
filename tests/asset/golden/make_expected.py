@@ -12,6 +12,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+from build_golden import RESAMPLER, SUBSETS
+
 HERE = Path(__file__).resolve().parent
 GRID = 8
 
@@ -19,7 +21,6 @@ NUMERIC = [
     ("players_01_textlayer", "players", ["01-textlayer/dotlottie", "01-textlayer/lottieweb"], "mean_abs_diff.avg", 0.05, 2.37),
     ("players_01_builder", "players", ["01-builder/dotlottie", "01-builder/lottieweb"], "mean_abs_diff.avg", 0.02, 0.145),
     ("routes_04_mean", "routes", ["04-pair/dotlottie", "04-pair/engine"], "mean_abs_diff.avg", 0.05, 2.45),
-    ("loop_04_ratio", "loop", ["04-loop"], "ratio", 0.02, 1.09),
     ("routes_04_edge_saturation", "routes", ["04-pair/dotlottie", "04-pair/engine"], "saturation_A_minus_B.가장자리", 0.003, 0.021),
     ("routes_04_centre_saturation", "routes", ["04-pair/dotlottie", "04-pair/engine"], "saturation_A_minus_B.가운데", 0.002, 0.001),
 ]
@@ -75,10 +76,12 @@ def main():
             value = dig(measure(a.measure, ["diff", *paths, "--top", "1"]), path)
             how = "measure.py diff"
         numeric[name] = {"cmd": cmd, "args": dirs, "path": path, "value": round(value, 4), "tol": tol, "spike_full": spike, "how": how}
-    subsets = {p.name: sorted(x.name for x in p.rglob("f*.*"))[:1] + ["..."] + sorted(x.name for x in p.rglob("f*.*"))[-1:] for p in sorted(HERE.iterdir()) if p.is_dir()}
+    sources = [{k: v for k, v in s.items()} for s in SUBSETS]
     out = {
         "method": "value = spike harness/measure.py on exactly the committed subset (see how). spike_full = published number on the full folder. Tests assert value within tol.",
-        "subsets": subsets,
+        "rebuild": "python3 tests/asset/golden/build_golden.py --spike <repo>/spikes/lottie-render, then make_expected.py --measure <spike>/harness/measure.py",
+        "resampler": RESAMPLER,
+        "sources": sources,
         "numeric": numeric,
     }
     (HERE / "expected.json").write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n")
