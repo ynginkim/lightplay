@@ -12,6 +12,12 @@ That copyright and full MIT permission notice are retained in `LICENSE` and `ski
 
 `skills/resolve-showreel-tools/scripts/package.json` declares `playwright-core` (`^1.60.0`). Playwright is an external installed dependency under [Apache-2.0](https://github.com/microsoft/playwright/blob/main/LICENSE), not original MIT code from this repository. Preserve the license and notices shipped with the actual installed version when redistributing it. A browser installation has its own terms; an automation wrapper does not relicense the browser.
 
+## Lottie asset dependencies
+
+`skills/resolve-showreel-tools/scripts/package.json` pins six packages for asset-mode, each under MIT: [`@lottiefiles/dotlottie-web`](https://github.com/LottieFiles/dotlottie-web) 0.82.1, [`lottie-web`](https://github.com/airbnb/lottie-web) 5.13.0, [`opentype.js`](https://github.com/opentypejs/opentype.js) 2.0.0, [`svgpath`](https://github.com/fontello/svgpath) 2.6.0, [`@lottie-animation-community/lottie-specs`](https://github.com/Lottie-Animation-Community/lottie-specs) 0.3.2, and [`@dotlottie/dotlottie-js`](https://github.com/LottieFiles/dotlottie-js) 1.9.0. The player page in `skills/resolve-showreel-tools/assets/player/` is original MIT code.
+
+MIT covers these six packages only. Their dependency tree, recorded in `package-lock.json`, includes other licenses. `@dotlottie/dotlottie-js` depends on `sharp` (Apache-2.0), whose optional platform binaries `@img/sharp-libvips-*` are LGPL-3.0-or-later, and on `wasm-imagemagick` (Apache-2.0). Other transitive packages are BSD-3-Clause, ISC, or 0BSD. Check the installed tree before redistributing `node_modules`, and keep the notices that ship with each package.
+
 ## ElevenLabs service
 
 `skills/resolve-showreel-tools/scripts/eleven.py` calls the [ElevenLabs API](https://elevenlabs.io/docs/api-reference/introduction) through HTTP. This is a remote service integration, not an included ElevenLabs SDK or a license grant to voices, music, or generated outputs. Service access, usage permissions, output rights, attribution requirements, and commercial-use eligibility depend on the applicable provider terms and account plan. This repository's MIT license does not replace those terms. Verify them for each intended use rather than relying on a code license or a cached plan description.

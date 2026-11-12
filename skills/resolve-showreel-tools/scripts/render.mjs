@@ -5,6 +5,7 @@
 //   영상:  node render.mjs --dir <project>/reel --out out/video.mp4 [--scale 1] [--workers 4] [--sub 1]
 //                         [--format png|jpeg] [--crf 16] [--from 0] [--to 60] [--fps 30] [--chunk 2]
 //   스틸:  node render.mjs --dir <project>/reel --stills 0.5,3,12.25 [--every 1] --outdir qa/stills [--scale 0.5]
+//   프레임: node render.mjs --dir <project>/reel --frames qa/f [--every 8] [--alpha] [--repeat 2] [--from 0] [--to 60]
 //   미리보기 서버: node render.mjs --dir <project>/reel --serve      (URL 을 출력하고 계속 띄워 둔다)
 //
 // 옵션
@@ -12,10 +13,16 @@
 //   --sub 4         서브프레임 모션 블러(셔터 180°). 최종 렌더에서만. 4 → 렌더 시간 약 4배
 //   --format        jpeg(기본, 빠름) | png(무손실, 느림). 둘 다 BT.709 tv 범위로 정확히 변환한다
 //   --chunk 2       청크 길이(초). 청크마다 세그먼트 파일을 만들어, 중단돼도 다시 실행하면 이어서 렌더한다(--fresh 로 무시)
+//   --frames DIR    프레임 번호 f00000.png … 를 DIR 에 쓴다. --every N 은 이 모드에서 N 프레임마다(스틸 모드의 --every 는 초 단위)
+//   --alpha         --frames 에서 투명 배경 RGBA PNG. 페이지 배경이 투명해야 알파가 남는다
+//   --repeat 2      --frames 의 요청 프레임을 섞은 순서로 다시 그려 첫 결과와 비교한다. 다르면 프레임 번호를 출력하고 종료 코드 3
 //   --workers N     동시 브라우저 페이지 수. 기본 = CPU 코어/3 (최대 6). 다른 렌더가 돌고 있으면 줄인다
 //
-// 페이지 규약: window.__ready === true 가 되면 준비 완료, window.__seek(t) 로 t초 화면, window.__meta = {duration,fps,width,height,fonts}
-// 종료 코드: 0 정상, 1 사용법·실행 오류, 2 페이지 오류(pageerror) 발생 — 결과물을 반드시 확인할 것
+// 페이지 규약: window.__ready === true 가 되면 준비 완료, 'error' 면 window.__errors 를 출력하고 종료 코드 2
+//   window.__seek(t) 로 t초 화면, window.__meta = {duration,fps,width,height,scenes,fonts[,frames]}
+//   scenes 는 장면 배열(개수를 출력), fonts 는 로드된 웹폰트 이름 배열. 둘 다 반드시 배열이어야 한다
+//   window.__seekFrame(n) 이 있으면 --frames 는 정수 프레임 n 을 그것으로 보이고, 없으면 __seek(n / fps) 를 쓴다. meta.frames 가 없으면 duration × fps
+// 종료 코드: 0 정상, 1 사용법·실행 오류, 2 페이지 오류(pageerror·__ready 'error') 발생 — 결과물을 반드시 확인할 것, 3 --repeat 에서 프레임이 달랐다
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -50,6 +57,8 @@ const preset = opt.preset || 'medium';
 const sub = Math.max(1, Number(opt.sub || 1));
 const shutter = Number(opt.shutter || 0.5);
 const cpu = os.cpus().length;
+const alpha = opt.alpha === 'true' && !!opt.frames;
+const repeat = Math.max(1, Number(opt.repeat || 1));
 const workers = Math.max(1, Number(opt.workers || Math.min(6, Math.max(1, Math.floor(cpu / 3)))));
 
 const MIME = {
@@ -102,15 +111,30 @@ async function openPage(browser, url, W, H) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: scale });
   const page = await ctx.newPage();
   page.on('pageerror', e => { pageErrors.push(String(e)); console.error('[pageerror]', String(e)); });
+  page.on('response', r => { if (r.status() >= 400) console.error(`[http ${r.status()}] ${r.url().replace(/^http:\/\/127\.0\.0\.1:\d+/, '')}`); });
   page.on('console', m => { if (m.type() === 'error' || (m.type() === 'warning' && m.text().startsWith('[REEL]'))) console.error('[console]', m.text()); });
   await page.goto(url + '?render=1', { waitUntil: 'load' });
-  await page.waitForFunction(() => window.__ready === true, null, { timeout: 120000 });
+  await page.waitForFunction(() => window.__ready === true || window.__ready === 'error', null, { timeout: 120000 });
+  if (await page.evaluate(() => window.__ready) === 'error') {
+    console.error('[페이지 준비 실패] ' + (await page.evaluate(() => window.__errors || [])).join('\n'));
+    process.exit(2);
+  }
   const cdp = await ctx.newCDPSession(page);
+  if (alpha) await cdp.send('Emulation.setDefaultBackgroundColorOverride', { color: { r: 0, g: 0, b: 0, a: 0 } });
   return { page, ctx, cdp };
 }
 
 async function shot(p, t, W, H, fmt) {
   await p.page.evaluate(tt => window.__seek(tt), t);
+  return capture(p, W, H, fmt);
+}
+
+async function shotFrame(p, f, fps, W, H) {
+  await p.page.evaluate(([n, r]) => (window.__seekFrame ? window.__seekFrame(n) : window.__seek(n / r)), [f, fps]);
+  return capture(p, W, H, 'png');
+}
+
+async function capture(p, W, H, fmt) {
   const { data } = await p.cdp.send('Page.captureScreenshot', {
     format: fmt, ...(fmt === 'jpeg' ? { quality } : {}), optimizeForSpeed: true, captureBeyondViewport: false,
     clip: { x: 0, y: 0, width: W, height: H, scale: 1 },
@@ -155,8 +179,37 @@ if (!meta.fonts.length) console.error('경고: 로드된 웹폰트가 없다. fo
 
 const browser = await launch(W, H);
 const t0 = Date.now();
+let nondeterministic = [];
 try {
-  if (opt.stills || opt.every) {
+  if (opt.frames) {
+    const outDir = path.resolve(opt.frames);
+    fs.mkdirSync(outDir, { recursive: true });
+    const fps = meta.fps, total = meta.frames ?? Math.round(meta.duration * fps);
+    const f0 = Math.round(Number(opt.from || 0) * fps), f1 = opt.to ? Math.min(total, Math.round(Number(opt.to) * fps)) : total;
+    const step = Math.max(1, Number(opt.every || 1));
+    const wanted = [];
+    for (let f = f0; f < f1; f += step) wanted.push(f);
+    const jobs = [];
+    for (let r = 0; r < repeat; r++) {
+      const key = f => r === 0 ? f : crypto.createHash('md5').update(`${r}:${f}`).digest().readUInt32LE(0);
+      jobs.push(...wanted.map(f => ({ f, r })).sort((a, b) => key(a.f) - key(b.f)));
+    }
+    const first = new Map(), bad = new Set();
+    let next = 0;
+    await Promise.all(Array.from({ length: Math.min(workers, jobs.length) }, async () => {
+      const p = await openPage(browser, url, W, H);
+      while (next < jobs.length) {
+        const { f, r } = jobs[next++];
+        const buf = await shotFrame(p, f, fps, W, H);
+        const h = crypto.createHash('sha1').update(buf).digest('hex');
+        if (r === 0) { first.set(f, h); fs.writeFileSync(path.join(outDir, `f${String(f).padStart(5, '0')}.png`), buf); }
+        else if (first.get(f) !== h) bad.add(f);
+      }
+      await p.ctx.close();
+    }));
+    console.log(`프레임 ${wanted.length}장 → ${outDir} (${((Date.now() - t0) / 1000).toFixed(1)}초${alpha ? ', 알파' : ''}${repeat > 1 ? `, 반복 ${repeat}회` : ''})`);
+    if (bad.size) nondeterministic = [...bad].sort((a, b) => a - b);
+  } else if (opt.stills || opt.every) {
     const outDir = path.resolve(opt.outdir || opt['stills-dir'] || path.join(root, 'qa', 'stills'));
     fs.mkdirSync(outDir, { recursive: true });
     let times = opt.stills ? opt.stills.split(',').map(Number) : [];
@@ -255,4 +308,8 @@ try {
 if (pageErrors.length) {
   console.error(`페이지 오류 ${pageErrors.length}건 — 해당 장면의 코드를 고치고 결과물을 확인하라.`);
   process.exit(2);
+}
+if (nondeterministic.length) {
+  console.error(`비결정 프레임 ${nondeterministic.length}개 — 다시 그리면 달랐다: ${nondeterministic.join(', ')}`);
+  process.exit(3);
 }
