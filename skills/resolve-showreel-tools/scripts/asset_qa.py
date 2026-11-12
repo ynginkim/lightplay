@@ -36,7 +36,7 @@ STATIC_STEP = 0.05
 LIMITS = {
     "players_warn_mean": 1.0, "players_fail_pct32": 2.0, "players_warn_pct32": 0.5,
     "routes_warn_mean": 3.0, "routes_warn_gap": 0.01,
-    "loop_ok": 1.5, "loop_warn": 3.0,
+    "loop_ok": 1.5,
     "ink_min": 0.0005,
     "motion_fail_static": 0.95,
     "marker_ok": 1.0, "marker_warn": 3.0,
@@ -60,7 +60,8 @@ def frames_of(d):
 
 
 def load(f, grey=128):
-    a = np.asarray(Image.open(f).convert("RGBA")).astype(np.float32)
+    with Image.open(f) as im:
+        a = np.asarray(im.convert("RGBA")).astype(np.float32)
     alpha = a[..., 3:4] / 255.0
     return a[..., :3] * alpha + grey * (1 - alpha)
 
@@ -81,7 +82,8 @@ def checker(w, h, s=16):
 
 
 def thumb(f, width):
-    im = Image.open(f).convert("RGBA")
+    with Image.open(f) as src:
+        im = src.convert("RGBA")
     im = im.resize((width, round(im.height * width / im.width)), Image.LANCZOS)
     bg = checker(*im.size).convert("RGBA")
     bg.alpha_composite(im)
@@ -109,9 +111,13 @@ def pmap(fn, items, parallel):
         return list(ex.map(fn, items, chunksize=max(1, len(items) // ((os.cpu_count() or 4) * 4))))
 
 
+def image_size(F):
+    with Image.open(next(iter(F.values()))) as im:
+        return im.size[0] * im.size[1]
+
+
 def is_big(F):
-    w, h = Image.open(next(iter(F.values()))).size
-    return w * h > 500_000 and len(F) >= 64
+    return image_size(F) > 500_000 and len(F) >= 64
 
 
 def diff_one(job):
@@ -167,7 +173,7 @@ def diff_sheet(A, B, worst, path):
     save_png(stack(tiles), path)
 
 
-def check_players(A, B, sheet=None, name="플레이어 차이"):
+def check_players(A, B, sheet=None):
     FA, FB = frames_of(A), frames_of(B)
     _, rows = diff_rows(FA, FB)
     s = diff_summary(rows)
@@ -181,7 +187,7 @@ def check_players(A, B, sheet=None, name="플레이어 차이"):
     if sheet:
         diff_sheet(FA, FB, s["worst"], sheet)
         s["sheet"] = sheet
-    return Row(name, st, f"평균 {m} /255, 32 초과 화소 {p}% ({s['frames']}프레임)", fix), s
+    return Row("플레이어 차이", st, f"평균 {m} /255, 32 초과 화소 {p}% ({s['frames']}프레임)", fix), s
 
 
 def region_label(r, c, n):
@@ -203,8 +209,11 @@ def check_routes(A, B, grid=8, sheet=None):
                     **{z: round(float(np.mean(v)), 4) for z, v in zones.items() if v}}
     s.update(grid=grid, saturation_A_minus_B=out["sat"], level_A_minus_B=out["level"])
     m, gap = s["mean_abs_diff"]["avg"], out["sat"]["가장자리"]
-    if abs(gap) > LIMITS["routes_warn_gap"] or m > LIMITS["routes_warn_mean"]:
-        st, fix = WARN, "한 경로의 가장자리 채도가 다르다. 엔진 쪽 색 관리(sRGB, 흐린 배경의 알파 합성)와 인코딩 색 태그를 확인한다" if abs(gap) > LIMITS["routes_warn_gap"] else "engineOnly 노드 때문인지 확인한다"
+    gap_off = abs(gap) > LIMITS["routes_warn_gap"]
+    if gap_off:
+        st, fix = WARN, "한 경로의 가장자리 채도가 다르다. 엔진 쪽 색 관리(sRGB, 흐린 배경의 알파 합성)와 인코딩 색 태그를 확인한다"
+    elif m > LIMITS["routes_warn_mean"]:
+        st, fix = WARN, "engineOnly 노드 때문인지 확인한다"
     else:
         st, fix = OK, ""
     if sheet:
@@ -214,11 +223,11 @@ def check_routes(A, B, grid=8, sheet=None):
     return Row("경로 차이", st, line, fix), s
 
 
-def scan_chunk(job):
-    items, prev_idx = job
+def scan_chunk(items):
     ink, steps, prev = {}, [], None
     for i, f in items:
-        a = np.asarray(Image.open(f).convert("RGBA"))
+        with Image.open(f) as im:
+            a = np.asarray(im.convert("RGBA"))
         al = a[..., 3]
         if al.min() < 255:
             mask = al > 16
@@ -238,7 +247,7 @@ def scan(F):
     idx = sorted(F)
     n = max(1, min(len(idx) - 1, (os.cpu_count() or 4) * 2 if is_big(F) else 1))
     bounds = [round(k * (len(idx) - 1) / n) for k in range(n + 1)]
-    jobs = [([(i, F[i]) for i in idx[bounds[k]:bounds[k + 1] + 1]], None) for k in range(n)] if len(idx) > 1 else [([(idx[0], F[idx[0]])], None)]
+    jobs = [[(i, F[i]) for i in idx[bounds[k]:bounds[k + 1] + 1]] for k in range(n)]
     res = pmap(scan_chunk, jobs, n > 1)
     ink, steps = {}, []
     for k_ink, k_steps in res:
@@ -257,7 +266,7 @@ def check_loop(d, sc=None):
     ratio = seam / med
     s = {"frames": len(idx), "seam_diff": round(seam, 3), "median_step_diff": round(float(np.median(steps)), 3), "max_step_diff": round(max(steps), 3),
          "ratio": round(ratio, 2), "seamless": ratio <= LIMITS["loop_ok"], "static_steps": sum(1 for v in steps if v < STATIC_STEP)}
-    st = OK if ratio <= LIMITS["loop_ok"] else WARN if ratio <= LIMITS["loop_warn"] else FAIL
+    st = OK if ratio <= LIMITS["loop_ok"] else FAIL
     fix = "" if st == OK else "마지막 프레임이 처음 프레임으로 이어지지 않는다. 끝 포즈를 첫 포즈에 맞추고 루프 길이를 주기의 정수배로 한다"
     return Row("루프 이음새", st, f"이음새 {s['seam_diff']} / 중앙 변화 {s['median_step_diff']} = 비 {s['ratio']}", fix), s
 
@@ -276,6 +285,8 @@ def lottie_issues(path):
     for ly in visible:
         if ly.get("ty") == 4 and not ly.get("shapes"):
             issues.append(f"셰이프 레이어 '{ly.get('nm', '?')}' 에 shapes 가 없다")
+        if ly.get("op", 1) <= ly.get("ip", 0):
+            issues.append(f"레이어 '{ly.get('nm', '?')}' 의 op <= ip 라 한 프레임도 보이지 않는다")
         if "ks" not in ly:
             issues.append(f"레이어 '{ly.get('nm', '?')}' 에 ks(transform)가 없다")
     return issues
@@ -409,7 +420,8 @@ def run_report(a):
     fps = a.fps
     rows, data = [], {}
     F = frames_of(a.dir)
-    w, h = Image.open(next(iter(F.values()))).size
+    with Image.open(next(iter(F.values()))) as im:
+        w, h = im.size
     rows.append(Row("규격", OK, f"{w}x{h}, {len(F)}프레임 (f{min(F)}~f{max(F)}), {fps:g}fps", ""))
 
     def add(key, res):

@@ -81,6 +81,8 @@ python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts "Ha
 | codex CLI, codex-image·photoreal 스킬 | build-video-scenes | 사용자 전역 설치(홈의 .claude/skills). 이미지당 약 1분, 플랜 사용량 차감 |
 | swiftc(macOS) | build-video-scenes(누끼) | 없으면 누끼 없이 진행 |
 | 공용 효과음 라이브러리 | prepare-video-audio, deliver-video | `sfx_library.py`가 `--lib`, 환경 변수 `SHOWREEL_SFX_LIBRARY`, `$CLAUDE_PROJECT_DIR/sfx-library` 순으로 찾는다. 셋 다 없으면 위치를 모른다며 멈춘다. 이때는 `sfx_library.py --lib <작업 폴더>/sfx-library find 종이`처럼 하위 명령 앞에 `--lib`를 붙인다 |
+| `asset_qa.py` | check-asset | 에셋 프레임 폴더 검수(`players` `routes` `loop` `ink` `motion` `markers` `themes` `sheet` `report`). numpy·Pillow. 1080p 480프레임 `report`가 약 25초(10코어, 프로세스 병렬) |
+| `encode_asset.py` | deliver-asset | 프레임 폴더를 GIF(폭 480)·VP9 WebM(알파)·APNG·MP4로 인코딩하고 WebM·MP4에 BT.709를 태그한다. ffmpeg. 1080p 480프레임 WebM이 약 24초(10코어) |
 
 ## 자료 위치
 

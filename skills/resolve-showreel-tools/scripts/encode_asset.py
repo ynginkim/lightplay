@@ -41,7 +41,8 @@ def main():
     frames = sorted(d.glob("f*.png"))
     if not frames:
         sys.exit(f"no PNG frames in {d}")
-    im = Image.open(frames[0]).convert("RGBA")
+    with Image.open(frames[0]) as src:
+        im = src.convert("RGBA")
     w, h = im.size
     has_alpha = im.getextrema()[3][0] < 255
     inp = ["-framerate", str(a.fps), "-start_number", str(int(frames[0].stem[1:])), "-i", str(d / "f%05d.png")]
