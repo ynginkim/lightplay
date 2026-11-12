@@ -27,12 +27,13 @@ async function fetchOk(url) {
 async function loadFonts() {
   const res = await fetch(fontBase + 'fonts.json');
   if (!res.ok) return [];
-  const list = await res.json();
-  const css = list.map(f => [f.id, f.family].map(name =>
+  const declared = await res.json();
+  const css = declared.map(f => [f.id, f.family].map(name =>
     `@font-face{font-family:'${name}';src:url('${fontBase}${f.file}') format('truetype');font-weight:${f.weight};}`).join('')).join('\n');
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
-  await Promise.all(list.map(f => document.fonts.load(`${f.weight} 16px '${f.id}'`, '가A')));
-  return list;
+  const loaded = await Promise.all(declared.map(async f => (await document.fonts.load(`${f.weight} 16px '${f.id}'`, '가A')).length > 0));
+  declared.forEach((f, i) => { if (!loaded[i]) fail('font not loaded: ' + f.id); });
+  return declared.filter((f, i) => loaded[i]);
 }
 
 function loadScript(url) {
@@ -45,15 +46,19 @@ function loadScript(url) {
 
 async function main() {
   if (!src) throw new Error('missing src (PLAYER_CFG.src or ?src=)');
-  const fonts = await loadFonts();
+  let fonts = await loadFonts();
   const json = src.endsWith('.lottie') ? null : await (await fetchOk(src)).json();
 
   if (player === 'dotlottie') {
     const { DotLottie } = await import(lib + 'dotlottie-web/index.js');
     DotLottie.setWasmUrl(lib + 'dotlottie-web/dotlottie-player.wasm');
+    const registered = [];
     for (const f of fonts) {
-      try { await DotLottie.registerFont(f.id, fontBase + f.file); } catch (e) { fail('registerFont ' + f.id + ': ' + e); }
+      let ok = false;
+      try { ok = await DotLottie.registerFont(f.id, fontBase + f.file); } catch (e) { fail('registerFont ' + f.id + ': ' + e); continue; }
+      if (ok) registered.push(f); else fail('registerFont failed: ' + f.id);
     }
+    fonts = registered;
     const canvas = document.createElement('canvas');
     stage.appendChild(canvas);
     if (json) { canvas.width = json.w; canvas.height = json.h; canvas.style.width = json.w + 'px'; canvas.style.height = json.h + 'px'; }
@@ -97,6 +102,7 @@ async function main() {
   window.__meta.fonts = fonts.map(f => f.id);
   window.__seek = (t) => window.__seekFrame(t * window.__meta.fps);
   await window.__seekFrame(0);
+  if (window.__errors.length) throw new Error(window.__errors.join('\n'));
   window.__ready = true;
 }
 
