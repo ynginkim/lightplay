@@ -80,6 +80,7 @@ python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts "Ha
 | 내장 synth_music.py | prepare-video-audio | 앞선 두 경로가 실패하거나 사용 불가할 때. ffmpeg·numpy, 외부 음악 API 비용 없음 |
 | codex CLI, codex-image·photoreal 스킬 | build-video-scenes | 사용자 전역 설치(홈의 .claude/skills). 이미지당 약 1분, 플랜 사용량 차감 |
 | swiftc(macOS) | build-video-scenes(누끼) | 없으면 누끼 없이 진행 |
+| `capture.mjs`(시스템 Chrome, playwright-core) | build-video-scenes(실제 화면), deliver-video(안내 포스터) | 로그인이 필요한 화면은 사용자가 직접 로그인한다. 로그인 프로필은 프로젝트 밖 임시 폴더에 두고 촬영 뒤 `forget`으로 지운다 |
 | 공용 효과음 라이브러리 | prepare-video-audio, deliver-video | `sfx_library.py`가 `--lib`, 환경 변수 `SHOWREEL_SFX_LIBRARY`, `$CLAUDE_PROJECT_DIR/sfx-library` 순으로 찾는다. 셋 다 없으면 위치를 모른다며 멈춘다. 이때는 `sfx_library.py --lib <작업 폴더>/sfx-library find 종이`처럼 하위 명령 앞에 `--lib`를 붙인다 |
 
 ## 자료 위치
@@ -92,6 +93,7 @@ references 문서는 서로를 파일 이름만으로 부른다(예: "`design.md
 | `story.md` | `../plan-video/references/story.md` |
 | `audio.md` | `../prepare-video-audio/references/audio.md` |
 | `images.md` | `../build-video-scenes/references/images.md` |
+| `capture.md` | `../build-video-scenes/references/capture.md` |
 | `design.md` | `../build-video-scenes/references/design.md` |
 | `engine.md` | `../build-video-scenes/references/engine.md` |
 | `techniques.md` | `../build-video-scenes/references/techniques.md` |
