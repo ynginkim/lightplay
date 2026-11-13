@@ -17,6 +17,7 @@ Changes are grouped using [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 - Upgrade the local renderer's Playwright dependency from 1.63.0 to 1.64.1.
 
 ### Fixed
+- `cleanup.py`가 최종 믹스 `audio/mix.wav`까지 지울 목록에 올려 매번 파일을 하나씩 지워야 했다. 규칙 표 하나로 다시 써서 최종 믹스·영상이 쓰는 음악·판별 보존 음악을 남기고, 후보를 "다시 안 쓸 것"과 "후속 작업용"(무음 렌더, 렌더 조각, 음악 스템, 녹음 원본)으로 나눈다. `--apply`는 휴지통으로 옮기는 것이 기본이고 `--trash`는 없앴다. `--followup`, `--delete`, `--trash-dir`를 더했고 `scripts/test_cleanup.py`를 CI에서 돌린다.
 - 옛 프로젝트 복원은 미추적 파일에 보관본을 쓰고, 현재 엔진과 다른 파일은 diff와 제작노트로 판별한 뒤 불명확하면 한 번 질문한다.
 - 옛 프로젝트 재렌더 진입에 엔진 상태 확인을 추가하고, 복원 뒤 Git 상태를 세 경로로 한정하며 `.restore/`를 프로젝트 커밋에서 제외한다.
 - 덮이거나 누락된 추적 엔진은 원본 `git checkout --`와 같은 index 버전을 보관한 뒤 복원해 스테이징된 엔진 변경도 유지한다.
