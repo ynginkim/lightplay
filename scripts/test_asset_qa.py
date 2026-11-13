@@ -733,5 +733,20 @@ class OpaqueGif(Tmp):
             self.assertAlmostEqual(sum(f.info["duration"] for f in ImageSequence.Iterator(gif)), 40 / 60 * 1000, delta=10)
 
 
+@unittest.skipUnless(ENC, "ffmpeg and ffprobe are required")
+class HighFpsOpaqueGif(Tmp):
+    def test_no_delay_under_20_ms_above_50_fps(self):
+        for fps in (59.94, 60, 75, 90, 120):
+            for n in (7, 11, 15, 22, 30, 45, 59):
+                d = self.tmp / f"f{fps}_{n}"
+                write_frames(d, [opaque(48, 48, 20 + 3 * k) for k in range(n)])
+                r = encode(d, self.tmp / f"g{fps}_{n}", "--formats", "gif", "--fps", str(fps))
+                self.assertEqual(r.returncode, 0, f"{fps} {n}: {r.stderr}")
+                with Image.open(self.tmp / f"g{fps}_{n}.gif") as gif:
+                    delays = [f.info["duration"] for f in ImageSequence.Iterator(gif)]
+                self.assertGreaterEqual(min(delays), 20, f"{fps}fps {n}: {delays}")
+                self.assertAlmostEqual(sum(delays), n / fps * 1000, delta=10.5, msg=f"{fps}fps {n}")
+
+
 if __name__ == "__main__":
     unittest.main()

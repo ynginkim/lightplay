@@ -7,7 +7,7 @@
 - 알파는 모든 프레임에서 본다. 한 프레임이라도 투명하면 알파를 유지한다.
 - gif: 폭을 --gif-width(기본 480)로 줄이고 50fps 를 넘기지 않는다(Chrome 이 10 ms 이하 지연을 100 ms 로 늘린다). 알파가 없으면 ffmpeg 팔레트 양자화와
   프레임 간 사각형 차이로 만들고, 알파가 있으면 Pillow 로 만들어 프레임마다 배경으로 지운다(disposal 2, 같은 프레임은 합쳐 지연을 더한다).
-  지연은 10 ms 단위라 누적 반올림으로 나눠 파일에 직접 써 넣고, 총 길이가 프레임 수/fps 와 10 ms 안에서 맞는지 본다. 맞지 않으면 종료 코드 2.
+  50fps 를 넘으면 프레임 수를 (총 길이 / 20 ms) 이하로 맞춰 모든 지연이 20 ms 이상이 되게 한다. 지연은 10 ms 단위라 누적 반올림으로 나눠 파일에 직접 써 넣고, 총 길이가 프레임 수/fps 와 10 ms 안에서 맞는지 본다. 맞지 않으면 종료 코드 2.
   1비트 알파라 투명 배경 글자에는 쓰지 않는다.
 - webm: VP9. 알파가 있으면 alpha_mode=1 태그가 붙고 ffprobe 는 화소 형식을 yuv420p 로 보고한다.
 - apng: 무손실, 알파 유지. 큰 파일이다.
@@ -86,16 +86,20 @@ def gif_total_ms(path):
 
 
 def gif_ffmpeg(frames, inp, fps, width, out):
-    gfps = min(fps, GIF_MAX_FPS)
-    vf = (f"{'fps=50,' if fps > GIF_MAX_FPS else ''}scale='min({width},iw)':-2:flags=lanczos,split[a][b];"
-          "[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle")
-    run([*BASE, *inp, "-vf", vf, "-loop", "0", out])
-    data = bytearray(Path(out).read_bytes())
-    at = gif_blocks(data)
-    total = len(frames) / fps
-    cs = [round((k + 1) * total * 100 / len(at)) - round(k * total * 100 / len(at)) for k in range(len(at))]
-    for pos, c in zip(at, cs):
-        struct.pack_into("<H", data, pos, max(c, 1))
+    total_cs = max(1, round(len(frames) / fps * 100))
+    target = max(1, total_cs // 2) if fps > GIF_MAX_FPS else None
+    for _ in range(4):
+        rate = f"fps={target * 100 / total_cs:.6f}," if target else ""
+        vf = (f"{rate}scale='min({width},iw)':-2:flags=lanczos,split[a][b];"
+              "[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle")
+        run([*BASE, *inp, "-vf", vf, "-loop", "0", out])
+        data = bytearray(Path(out).read_bytes())
+        at = gif_blocks(data)
+        if target is None or len(at) <= target:
+            break
+        target = max(1, target - (len(at) - target))
+    for k, pos in enumerate(at):
+        struct.pack_into("<H", data, pos, max(round((k + 1) * total_cs / len(at)) - round(k * total_cs / len(at)), 2))
     Path(out).write_bytes(data)
 
 
