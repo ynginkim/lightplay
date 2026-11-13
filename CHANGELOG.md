@@ -5,6 +5,7 @@ Changes are grouped using [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 ## [Unreleased]
 
 ### Added
+- deliver-video `references/poster.md`: 영상과 함께 낼 안내 포스터. 그림은 이미지 모델이 만들고 글자는 HTML로 조판해 `capture.mjs`로 렌더한다. 서체 한 가족, 글자색과 강조색 두 가지, 가장 작은 글자 크기, 세로판과 가로판을 읽히게 하기 위한 기준으로 적는다.
 - `capture.mjs`: 실제 제품 화면을 2배율 스틸·전체 페이지·프레임 단위 스크롤로 찍는다. 설정 파일 하나가 기록이 되고, 로그인 전용 임시 프로필(사용자가 직접 로그인, 촬영 뒤 `forget`으로 삭제), 찍기 전 실명 가리기, `manifest.json` 크기 기록을 지원한다. 로컬 HTML 포스터 렌더에도 쓴다. 사용법은 build-video-scenes의 `references/capture.md`.
 
 ### Changed
