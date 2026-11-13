@@ -5,6 +5,7 @@ Changes are grouped using [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 ## [Unreleased]
 
 ### Added
+- `vo_split.py`: 사용자가 한 파일로 녹음한 나레이션을 줄별 클립(`audio/vo/<id>.mp3`, `.align.json`, `report.json`)으로 나눠 `timeline.py`로 바로 잇는다. 받아쓰기가 있으면 단어 시각으로, 없으면 소리 크기와 macOS `say` 기준 낭독의 MFCC·DTW 거리로 줄을 찾고 다시 읽은 줄은 마지막 테이크를 쓴다. `--timeline`은 줄 길이 대 장면 표를 낸다. prepare-video-audio에 녹음 원고 형식, 길이 선택지, `--sfx-duck 0.8` 기준을 더한다.
 - `text_probe.mjs`: 초안의 화면 글자를 시간에 따라 읽어 글 덩어리마다 다 보이는 시간과 필요한 시간(공백 제외 한국어 초당 6자, 영어 초당 10자)을 비교하고 ✗ 줄을 낸다. `--groups`는 같이 뜬 여러 줄 캡션을 합쳐 보고, `--no-hangul`은 영어판 화면 글자의 한글을 찾는다. critique-video의 "읽는 시간"과 engine.md의 "읽기 대기와 카메라 호흡"이 쓰는 법을 적는다.
 - deliver-video `references/poster.md`: 영상과 함께 낼 안내 포스터. 그림은 이미지 모델이 만들고 글자는 HTML로 조판해 `capture.mjs`로 렌더한다. 서체 한 가족, 글자색과 강조색 두 가지, 가장 작은 글자 크기, 세로판과 가로판을 읽히게 하기 위한 기준으로 적는다.
 - `capture.mjs`: 실제 제품 화면을 2배율 스틸·전체 페이지·프레임 단위 스크롤로 찍는다. 설정 파일 하나가 기록이 되고, 로그인 전용 임시 프로필(사용자가 직접 로그인, 촬영 뒤 `forget`으로 삭제), 찍기 전 실명 가리기, `manifest.json` 크기 기록을 지원한다. 로컬 HTML 포스터 렌더에도 쓴다. 사용법은 build-video-scenes의 `references/capture.md`.
