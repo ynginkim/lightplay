@@ -72,6 +72,26 @@ python3 $S/qa_check.py <프로젝트>/out/<이름>.mp4 --timeline <프로젝트>
 
 규격, 음량, 너무 어두운 구간, 섬광, 멈춘 화면, 완성 믹스의 받아쓰기(숫자 오인식 포함)를 검사하고 `qa/qa_report.md`와 최종 시트를 만든다. "고칠 것"을 모두 처리하고 최종 시트를 Read로 본 뒤 납품한다. STT에서 한 번만 틀린 줄은 한 번 더 돌려 두 번 다 틀릴 때 고친다. 보고를 읽는 법은 `../critique-video/references/qa.md`의 "자동 검수(qa_check.py) 읽는 법"에 있다. 이 검수는 보고서를 쓰고도 정상 종료하므로 종료 코드가 아니라 보고의 "고칠 것"을 읽는다. **principle-judge-rendered-evidence**를 적용한다.
 
+## README·GitHub용 사본
+
+GitHub README에 넣을 영상은 첨부 한도(무료 플랜 10MB) 안에 드는 사본을 따로 만든다. GitHub 웹 편집기에 이 파일을 끌어 넣으면 README 안에서 재생된다. 마스터는 그대로 둔다.
+
+- 영상 비트레이트(kbps)는 `72000 / 길이(초) - 150` 정도로 시작한다(54초 1200k, 60초 1050k로 9MB 안팎이 나왔다). 오디오는 AAC 128k이고, AAC로 바꾸면 피크가 오르므로 믹스를 1dB 낮춰 넣는다.
+- 2패스로 인코딩한다. 입력은 무음 렌더 `out/video.mp4`이고, 지웠으면 마스터의 영상 스트림을 쓴다.
+
+```bash
+ffmpeg -y -i <프로젝트>/audio/mix.wav -af volume=-1.0dB -c:a aac -b:a 128k -ar 48000 <프로젝트>/out/a128.m4a
+ffmpeg -y -i <프로젝트>/out/video.mp4 -an -c:v libx264 -preset slow -b:v <K>k -maxrate <2K>k -bufsize <4K>k -pass 1 -passlogfile <프로젝트>/out/x264 -pix_fmt yuv420p -colorspace bt709 -color_primaries bt709 -color_trc bt709 -f mp4 /dev/null
+ffmpeg -y -i <프로젝트>/out/video.mp4 -i <프로젝트>/out/a128.m4a -map 0:v:0 -map 1:a:0 -c:v libx264 -preset slow -b:v <K>k -maxrate <2K>k -bufsize <4K>k -pass 2 -passlogfile <프로젝트>/out/x264 -pix_fmt yuv420p -colorspace bt709 -color_primaries bt709 -color_trc bt709 -c:a copy -t <길이> -movflags +faststart <프로젝트>/out/<제목>_<길이>s_readme.mp4
+```
+
+확인할 것:
+
+- 크기가 10MB 미만이다. 넘으면 비트레이트를 낮춰 2패스를 다시 한다.
+- 첫 프레임이 포스터 역할을 한다. README는 재생 전에 첫 프레임을 보여 주므로, 첫 프레임에 무엇인지 알 수 있는 제목과 화면이 이미 떠 있어야 한다. `ffmpeg -i <사본> -frames:v 1 <프로젝트>/qa/readme_first.png`로 뽑아 Read로 본다.
+- README 플레이어 폭(약 900px)에서 글자가 읽힌다. 1920 폭 기준으로 본문은 48px 이상, 가장 작은 글자도 36px 이상이어야 900px에서 17px 안팎이 된다. 최종 시트를 900px 폭으로 줄여 Read로 보고, 작은 글자 목록을 납품 보고의 약점에 적는다. 이 크기는 장면을 만들 때부터 지킨다.
+- 마스터와 화질을 비교한다(`ffmpeg -i <사본> -i <마스터> -lavfi ssim -f null -`). 빠른 카메라 이동 구간이 가장 낮게 나온다.
+
 ## 납품 보고
 
 원래 11단계다. 납품 보고와 `제작노트.md` 형식은 `../critique-video/references/qa.md`의 "납품"에 있다. 다음을 반드시 넣는다.

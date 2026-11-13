@@ -53,6 +53,7 @@ Read ../resolve-showreel-tools/SKILL.md
 - 표현 수단에 제한을 두지 않는다. DOM·SVG, 캔버스 2D, WebGL2 셰이더, three.js 3D가 모두 렌더된다(`engine.md`의 "WebGL: 셰이더와 3D").
 - 시각은 숫자를 직접 쓰지 말고 `REEL.cue('이름')`로 타임라인 큐를 쓴다. 그래야 오디오를 다시 만들어도 화면이 따라온다. **principle-stable-cues-late-surfaces**를 적용한다.
 - 하드 컷·상태 전환은 큐보다 0.5프레임 앞에 둔다(`cue(x) - 0.5/fps`). 모션 블러 셔터가 프레임 앞뒤에 걸쳐 있어서, 그래야 큐 프레임에 새 상태가 정확히 보인다. 장면 경계도 같다: `REEL.scene({ start: cue('scene.s02') - 0.5 / REEL.fps, end: cue('scene.s02.end') - 0.5 / REEL.fps, … })`. 정수 초 큐를 그대로 쓰면 `--sub 4` 렌더에서 경계 프레임에 앞뒤 구간이 섞인다.
+- GitHub README처럼 작은 플레이어에 넣을 영상은 1920 폭 기준 본문 48px, 가장 작은 글자 36px 이상으로 쓰고 첫 프레임에 제목과 화면을 띄운다(deliver-video의 "README·GitHub용 사본").
 - 첫 프레임을 어떻게 시작할지는 콘셉트가 정한다. 빈 화면·정적·페이드로 시작한다면 의도를 `concept.md`에 적는다. 의도하지 않은 빈 프레임으로 시작하지 않는다.
 - 색은 `concept.md`의 구간별 아트 디렉션을 따른다. 실존 브랜드가 주제면 공식 색(사이트 CSS·로고)을 쓴다. `reel/index.html`의 색 토큰은 회색 자리 표시 값이므로 그대로 두지 않는다.
 - 3분 넘는 영상이나 구간이 많은 쇼릴은 구간마다 `scenes_sNN.js`로 나누고 하위 agent에 나눠 맡길 수 있다(`engine.md`의 "나눠 만들기").
