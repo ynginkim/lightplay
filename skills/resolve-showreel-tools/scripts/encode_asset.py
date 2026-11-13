@@ -5,9 +5,10 @@
 
 - 프레임 번호가 이어져 있어야 한다. 빠진 번호가 있으면 종료 코드 2 로 멈춘다(--every 로 캡처한 폴더는 인코딩하지 않는다).
 - 알파는 모든 프레임에서 본다. 한 프레임이라도 투명하면 알파를 유지한다.
-- gif: Pillow 로 만든다. 폭을 --gif-width(기본 480)로 줄이고 50fps 를 넘기지 않는다(Chrome 이 10 ms 이하 지연을 100 ms 로 늘린다).
-  지연은 10 ms 단위라 누적 반올림으로 나눠 총 길이가 프레임 수/fps 와 10 ms 안에서 맞는다(30fps 는 30·30·40 ms 순서). 맞지 않으면 종료 코드 2.
-  알파가 있으면 프레임마다 배경으로 지운다(disposal 2). 같은 프레임이 이어지면 하나로 합쳐 지연을 더한다. 1비트 알파라 투명 배경 글자에는 쓰지 않는다.
+- gif: 폭을 --gif-width(기본 480)로 줄이고 50fps 를 넘기지 않는다(Chrome 이 10 ms 이하 지연을 100 ms 로 늘린다). 알파가 없으면 ffmpeg 팔레트 양자화와
+  프레임 간 사각형 차이로 만들고, 알파가 있으면 Pillow 로 만들어 프레임마다 배경으로 지운다(disposal 2, 같은 프레임은 합쳐 지연을 더한다).
+  지연은 10 ms 단위라 누적 반올림으로 나눠 파일에 직접 써 넣고, 총 길이가 프레임 수/fps 와 10 ms 안에서 맞는지 본다. 맞지 않으면 종료 코드 2.
+  1비트 알파라 투명 배경 글자에는 쓰지 않는다.
 - webm: VP9. 알파가 있으면 alpha_mode=1 태그가 붙고 ffprobe 는 화소 형식을 yuv420p 로 보고한다.
 - apng: 무손실, 알파 유지. 큰 파일이다.
 - mp4: H.264 yuv420p, 알파 없음이라 --bg 위에 RGB 로 합성한다. 홀수 크기는 --bg 색으로 짝수까지 채운다.
@@ -17,12 +18,13 @@
 import argparse
 import json
 import math
+import struct
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from PIL import Image, ImageSequence
+from PIL import Image
 
 TAGS = ["-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "iec61966-2-1", "-color_range", "tv"]
 YUV = "scale=out_color_matrix=bt709:out_range=tv,setparams=colorspace=bt709:color_primaries=bt709:color_trc=iec61966-2-1:range=tv"
@@ -59,12 +61,45 @@ def gif_delays(n, fps):
     return count, gfps, [c * 10 for c in cs]
 
 
+def gif_blocks(data):
+    flags = data[10]
+    pos = 13 + (3 * (2 << (flags & 7)) if flags & 0x80 else 0)
+    gce = []
+    while pos < len(data) and data[pos] != 0x3B:
+        if data[pos] == 0x21:
+            if data[pos + 1] == 0xF9:
+                gce.append(pos + 4)
+            pos += 2
+        elif data[pos] == 0x2C:
+            fl = data[pos + 9]
+            pos += 10 + (3 * (2 << (fl & 7)) if fl & 0x80 else 0) + 1
+        else:
+            raise ValueError("GIF 구조를 읽을 수 없다")
+        while data[pos]:
+            pos += data[pos] + 1
+        pos += 1
+    return gce
+
+
 def gif_total_ms(path):
-    with Image.open(path) as im:
-        return sum(f.info.get("duration", 0) for f in ImageSequence.Iterator(im))
+    return sum(struct.unpack_from("<H", Path(path).read_bytes(), at)[0] for at in gif_blocks(Path(path).read_bytes())) * 10
 
 
-def gif_encode(frames, fps, width, has_alpha, out):
+def gif_ffmpeg(frames, inp, fps, width, out):
+    gfps = min(fps, GIF_MAX_FPS)
+    vf = (f"{'fps=50,' if fps > GIF_MAX_FPS else ''}scale='min({width},iw)':-2:flags=lanczos,split[a][b];"
+          "[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle")
+    run([*BASE, *inp, "-vf", vf, "-loop", "0", out])
+    data = bytearray(Path(out).read_bytes())
+    at = gif_blocks(data)
+    total = len(frames) / fps
+    cs = [round((k + 1) * total * 100 / len(at)) - round(k * total * 100 / len(at)) for k in range(len(at))]
+    for pos, c in zip(at, cs):
+        struct.pack_into("<H", data, pos, max(c, 1))
+    Path(out).write_bytes(data)
+
+
+def gif_alpha(frames, fps, width, out):
     count, gfps, delays = gif_delays(len(frames), fps)
     ims = []
     for k in range(count):
@@ -72,16 +107,12 @@ def gif_encode(frames, fps, width, has_alpha, out):
             im = src.convert("RGBA")
         if im.width > width:
             im = im.resize((width, round(im.height * width / im.width)), Image.LANCZOS)
-        if not has_alpha:
-            ims.append(im.convert("RGB").quantize(colors=256))
-            continue
         p = im.convert("RGB").quantize(colors=255)
         p.paste(255, im.getchannel("A").point(lambda v: 255 if v < 128 else 0))
         pal = p.getpalette()[:765]
         p.putpalette(pal + [0, 0, 0] * (256 - len(pal) // 3))
         ims.append(p)
-    extra = {"disposal": 2, "transparency": 255, "optimize": False} if has_alpha else {}
-    ims[0].save(out, save_all=True, append_images=ims[1:], duration=delays, loop=0, **extra)
+    ims[0].save(out, save_all=True, append_images=ims[1:], duration=delays, loop=0, disposal=2, transparency=255, optimize=False)
 
 
 def main():
@@ -125,8 +156,10 @@ def encode():
     out = []
     for fmt in a.formats.split(","):
         f = f"{a.name}.{fmt}"
-        if fmt == "gif":
-            gif_encode(frames, a.fps, a.gif_width, has_alpha, f)
+        if fmt == "gif" and has_alpha:
+            gif_alpha(frames, a.fps, a.gif_width, f)
+        elif fmt == "gif":
+            gif_ffmpeg(frames, inp, a.fps, a.gif_width, f)
         elif fmt == "webm":
             pix = "yuva420p" if has_alpha else "yuv420p"
             run([*BASE, *inp, "-vf", f"{YUV},format={pix}", "-c:v", "libvpx-vp9", "-pix_fmt", pix, "-b:v", "0", "-crf", "32", "-row-mt", "1", *TAGS, f])

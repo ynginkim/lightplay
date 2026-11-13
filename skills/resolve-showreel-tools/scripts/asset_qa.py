@@ -19,7 +19,7 @@
   report 는 --theme 시트를 --sheet-dir 에, 없으면 --out/--json 이 있는 폴더에 쓴다(둘 다 없으면 오류). 줄에 시트 경로를 적는다.
   경계값(LIMITS): 플레이어 비교는 그림 영역 최악 프레임의 32 초과 화소 5% 초과가 ✗, 1.5% 또는 평균 5.0 초과가 △. 경로 비교는 32 초과 화소 20% 초과가 ✗,
   그림 영역 최악 프레임 평균 12.0 초과나 가장자리 채도 차이 0.01 초과가 △. 두 폴더의 배경색(불투명 캡처)이 24 넘게 다르면 ✗.
-  마커의 루프 이음새와 진입 경계는 구간 안 프레임 간 변화(중앙값, 앞 12스텝)에 대한 비로 본다. 1.5 이하 ✓, 3.0 이하 △, 3.0 초과 ✗. 구간 프레임이 모자라면 절대 차이 1.0·3.0 으로 본다.
+  마커의 진입 경계는 구간 앞 12스텝 변화의 중앙값에 대한 비로, 루프 이음새는 구간 전체에서 움직이는 스텝(최대 60개 표본)의 중앙값에 대한 비로 본다. 1.5 이하 ✓, 3.0 이하 △, 3.0 초과 ✗. 구간 프레임이 모자라면 절대 차이 1.0·3.0 으로 본다.
   loop 줄은 비 1.5 초과가 ✗(△ 없음). 테마는 모든 공통 프레임에서 바뀐 화소(배경 포함)가 4개 미만이면 ✗.
   report 의 루프 줄은 --loop 이거나 dotLottie manifest 가 loop 이면 건다. 아니면 "-" 로 두고, 마커 구간의 루프 이음새는 markers 줄이 본다.
   두 폴더의 프레임 번호가 다르면 ✗ 다. 듬성하게 캡처한 쪽(예: lottie-web 120프레임)과 비교하려면 players·routes·report 에 --common 을 붙인다. 줄에 비교한 개수를 적는다.
@@ -524,11 +524,15 @@ def pose_diff(F, a, b):
     return round(float(d[u].mean()) if u.any() else 0.0, 3)
 
 
-def segment_step(F, a, b):
-    nums = [i for i in range(a, min(b, a + 12) + 1) if i in F]
+def segment_step(F, a, b, local=False):
+    nums = [i for i in range(a, b + 1) if i in F]
     if len(nums) < 2 or nums != list(range(nums[0], nums[-1] + 1)):
         return None
-    return float(np.median([pose_diff(F, nums[k], nums[k + 1]) for k in range(len(nums) - 1)]))
+    starts = nums[:min(12, len(nums) - 1)] if local else nums[:-1:max(1, (len(nums) - 1) // 60)]
+    steps = [pose_diff(F, i, i + 1) for i in starts]
+    if not local:
+        steps = [v for v in steps if v >= STATIC_STEP] or steps
+    return float(np.median(steps))
 
 
 def check_markers(lottie, d, loop_names=("idle", "loop")):
@@ -557,7 +561,7 @@ def check_markers(lottie, d, loop_names=("idle", "loop")):
                 continue
             pair = {"pair": name, "a": a, "b": b, "kind": kind, "diff": pose_diff(F, a, b)}
             if kind in ("seam", "entry"):
-                step = segment_step(F, m["from"], m["to"] - 1)
+                step = segment_step(F, m["from"], m["to"] - 1, local=kind == "entry")
                 if step is not None:
                     pair["median_step"], pair["ratio"] = round(step, 3), round(pair["diff"] / max(step, STATIC_STEP), 2)
             pairs.append(pair)

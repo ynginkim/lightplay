@@ -683,5 +683,55 @@ class EncodeRound4(Tmp):
             self.assertEqual(len(r.stderr.strip().splitlines()), 1, r.stderr)
 
 
+class SeamWindow(Tmp):
+    def lottie(self, op, marks):
+        p = self.tmp / "m.json"
+        p.write_text(json.dumps({"v": "5.7.0", "fr": 60, "ip": 0, "op": op, "w": 128, "h": 128, "layers": [], "markers": [{"cm": n, "tm": t, "dr": d} for n, t, d in marks]}))
+        return p
+
+    def test_a_seamless_idle_that_holds_then_moves_passes(self):
+        for hold in (10, 20):
+            n = 80
+            frames = [disc(0, n - hold)] * hold + [disc(k, n - hold) for k in range(n - hold)]
+            write_frames(self.tmp / f"h{hold}", frames[:n])
+            row, data = qa.check_markers(str(self.lottie(n, [("idle", 0, n)])), str(self.tmp / f"h{hold}"))
+            self.assertEqual(row.status, qa.OK, f"hold {hold}: {row.line}")
+
+    def test_a_fast_head_does_not_hide_a_broken_seam(self):
+        frames = [square(2 + 8 * k, 200, 64) for k in range(12)] + [square(90 + (k - 11), 200, 64) for k in range(12, 50)]
+        write_frames(self.tmp / "f", frames)
+        row, _ = qa.check_markers(str(self.lottie(50, [("idle", 0, 50)])), str(self.tmp / "f"))
+        self.assertEqual(row.status, qa.FAIL, row.line)
+
+
+@unittest.skipUnless(ENC, "ffmpeg and ffprobe are required")
+class OpaqueGif(Tmp):
+    def textured(self, n=40, w=960, h=540):
+        rng = np.random.default_rng(1)
+        small = rng.integers(40, 200, (9, 16, 3), dtype=np.uint8)
+        base = np.asarray(Image.fromarray(small).resize((w, h), Image.BICUBIC)).astype(np.float32)
+        y, x = np.mgrid[0:h, 0:w]
+        out = []
+        for k in range(n):
+            f = base.copy()
+            cx = 100 + k * 18
+            f[(x - cx) ** 2 + (y - 270) ** 2 < 70 ** 2] = (230, 60, 60)
+            a = np.full((h, w, 4), 255, np.uint8)
+            a[..., :3] = f.astype(np.uint8)
+            out.append(a)
+        return out
+
+    def test_opaque_gif_size_stays_near_the_ffmpeg_palette_path(self):
+        write_frames(self.tmp / "t", self.textured())
+        ref = self.tmp / "ref.gif"
+        vf = "scale='min(480,iw)':-2:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle"
+        subprocess.run(["ffmpeg", "-y", "-nostdin", "-loglevel", "error", "-framerate", "60", "-i", str(self.tmp / "t/f%05d.png"), "-vf", vf, str(ref)], check=True)
+        r = encode(self.tmp / "t", self.tmp / "o", "--formats", "gif")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertLessEqual((self.tmp / "o.gif").stat().st_size, 1.2 * ref.stat().st_size)
+        with Image.open(self.tmp / "o.gif") as gif:
+            self.assertAlmostEqual(sum(f.info["duration"] for f in ImageSequence.Iterator(gif)), 40 / 60 * 1000, delta=10)
+
+
 if __name__ == "__main__":
     unittest.main()
