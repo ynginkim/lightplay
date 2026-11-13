@@ -285,8 +285,9 @@ def alike(Ds):
         warnings.simplefilter("ignore", RuntimeWarning)
         for X in Ds:
             for _ in range(2):
-                X = (X - np.nanmean(X, 1, keepdims=True)) / (np.nanstd(X, 1, keepdims=True) + 1e-9)
-                X = (X - np.nanmean(X, 0, keepdims=True)) / (np.nanstd(X, 0, keepdims=True) + 1e-9)
+                for ax in (1, 0):
+                    if np.isfinite(X).any(1 - ax).sum() > 1:
+                        X = (X - np.nanmean(X, ax, keepdims=True)) / (np.nanstd(X, ax, keepdims=True) + 1e-9)
             out.append(-X)
         return np.nanmean(out, axis=0)
 
@@ -348,7 +349,7 @@ def refine(takes, snd):
         if t.off <= t.on:
             t.on, t.off = t.s, t.e
         before = max((r[1] for r in fine if r[1] <= (r_on or [t.s])[0]), default=0.0)
-        after = min((r[0] for r in fine if r[0] >= (r_off or [t.e])[1]), default=snd.dur)
+        after = min((r[0] for r in fine if r[0] >= (r_off[1] if r_off else t.e)), default=snd.dur)
         t.c0 = max(lo, t.on - PAD_IN, before + 0.02 if before else 0.0)
         t.c1 = min(hi, t.off + PAD_OUT, after - 0.02)
 

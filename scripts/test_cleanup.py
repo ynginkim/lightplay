@@ -215,6 +215,17 @@ class CleanupTests(unittest.TestCase):
         self.assertLessEqual(unjudged, left)
         self.assertFalse({"audio/music/verify/mix_test.wav", "audio/music/dbg/stems/stem_kick.wav", "audio/music/take_stem.wav"} & left)
 
+    def test_music_that_is_a_symlink_keeps_the_real_file_it_points_to(self):
+        music = self.project / "audio/music"
+        self.write("audio/music/take3.wav", "take3")
+        (music / "music.wav").unlink()
+        (music / "music.wav").symlink_to("take3.wav")
+        r = self.cli("--apply", "--trash-dir", str(self.trash))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual((music / "take3.wav").read_text(encoding="utf-8"), "take3")
+        self.assertTrue((music / "music.wav").is_symlink())
+        self.assertEqual(self.files(self.trashed()), paths(DISCARD))
+
     def test_long_lists_are_capped_but_totals_stay_complete(self):
         for n in range(200):
             self.write(f"qa/still_{n:03}.png", "x")

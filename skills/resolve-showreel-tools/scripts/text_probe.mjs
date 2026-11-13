@@ -8,7 +8,7 @@
 // 동작: step 초마다 window.__seek(t) 로 장면을 돌려, 보이는 글 블록을 모은다.
 //   블록   = 글자가 든 가장 가까운 비인라인 조상(헤드라인 안의 강조 span 은 헤드라인과 한 블록). 요소 정체성으로 시각 사이를 잇는다.
 //            같은 요소의 글이 서로 안 겹치는 문장으로 바뀌면(캡션 교체) 다른 블록으로 센다. 타자 효과는 글이 자라는 것이라 한 블록이다.
-//   완전히 보임 = 요소와 조상의 누적 불투명도 ≥ 0.9, 글 상자의 95% 이상이 화면 안, 크기 0 아님, 글이 그 블록이 낼 가장 긴 글과 같음(타자 중 제외)
+//   완전히 보임 = 요소와 조상의 누적 불투명도 ≥ 0.9, 글 상자의 95% 이상이 화면 안이면서 overflow 가 visible 이 아닌 조상(마스크 리빌의 래퍼 등)에 안 잘림, 크기 0 아님, 글이 그 블록이 낼 가장 긴 글과 같음(타자 중 제외)
 //   판정   = 완전히 보인 가장 긴 연속 구간(초) ≥ 필요 시간 = 글자 수(공백 제외) / 속도 + base 이면 ✓, 아니면 ✗. 한글 음절이 하나라도 있으면 한글 속도
 //   완전히 보인 적이 없는 블록(장식·반투명·화면 밖에 걸친 글)은 판정하지 않고 따로 센다.
 //   읽는 묶음(--groups 일 때 출력) = 같은 장면에서 가장 긴 완전히 보인 구간이 --group-window 초 안에 시작하고 서로 겹치는 블록 둘 이상(줄마다 요소를 나눈 캡션). 묶음의 보임 = 구성원 구간의 겹침,
@@ -101,6 +101,21 @@ function measure([t, hangul]) {
     }
     return b;
   };
+  const clipCache = new Map();
+  const clipOf = el => {
+    let c = clipCache.get(el);
+    if (!c) {
+      c = el === document.body ? [-Infinity, -Infinity, Infinity, Infinity] : [...clipOf(el.parentElement)];
+      const s = getComputedStyle(el), cx = s.overflowX !== 'visible', cy = s.overflowY !== 'visible';
+      if (cx || cy) {
+        const r = el.getBoundingClientRect();
+        if (cx) { c[0] = Math.max(c[0], r.left); c[2] = Math.min(c[2], r.right); }
+        if (cy) { c[1] = Math.max(c[1], r.top); c[3] = Math.min(c[3], r.bottom); }
+      }
+      clipCache.set(el, c);
+    }
+    return c;
+  };
   const blocks = new Map();
   const range = document.createRange();
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -114,13 +129,18 @@ function measure([t, hangul]) {
     if (op < 0.05) continue;
     const b = blockOf(p);
     let e = blocks.get(b);
-    if (!e) blocks.set(b, e = { text: '', solid: '', last: null, x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity });
+    if (!e) blocks.set(b, e = { text: '', solid: '', last: null, x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity, cx0: Infinity, cy0: Infinity, cx1: -Infinity, cy1: -Infinity });
     const h = rects[0].height;
     if (e.last && (rects[0].top > e.last.bottom - h * 0.5 || rects[0].left - e.last.right > h * 0.1)) e.text += ' ';
     e.text += n.data;
     e.last = rects.at(-1);
     if (op >= 0.9) e.solid += n.data;
-    for (const r of rects) { e.x0 = Math.min(e.x0, r.left); e.y0 = Math.min(e.y0, r.top); e.x1 = Math.max(e.x1, r.right); e.y1 = Math.max(e.y1, r.bottom); }
+    const clip = clipOf(p);
+    for (const r of rects) {
+      e.x0 = Math.min(e.x0, r.left); e.y0 = Math.min(e.y0, r.top); e.x1 = Math.max(e.x1, r.right); e.y1 = Math.max(e.y1, r.bottom);
+      const x0 = Math.max(r.left, clip[0]), y0 = Math.max(r.top, clip[1]), x1 = Math.min(r.right, clip[2]), y1 = Math.min(r.bottom, clip[3]);
+      if (x1 > x0 && y1 > y0) { e.cx0 = Math.min(e.cx0, x0); e.cy0 = Math.min(e.cy0, y0); e.cx1 = Math.max(e.cx1, x1); e.cy1 = Math.max(e.cy1, y1); }
+    }
   }
   const flat = s => s.replace(/\s+/g, ' ').trim(), key = s => s.replace(/\s+/g, '');
   const out = [];
@@ -128,7 +148,7 @@ function measure([t, hangul]) {
     const text = flat(e.text);
     if (!text) continue;
     if (!ids.map.has(el)) ids.map.set(el, ++ids.n);
-    const inW = Math.max(0, Math.min(e.x1, W) - Math.max(e.x0, 0)), inH = Math.max(0, Math.min(e.y1, H) - Math.max(e.y0, 0));
+    const inW = Math.max(0, Math.min(e.cx1, W) - Math.max(e.cx0, 0)), inH = Math.max(0, Math.min(e.cy1, H) - Math.max(e.cy0, 0));
     out.push({ id: ids.map.get(el), scene: el.closest('.scene')?.id || '-', text, key: key(text), solid: key(e.solid), inside: (inW * inH) / ((e.x1 - e.x0) * (e.y1 - e.y0)) });
   }
   const ko = hangul ? [...new Set(document.body.innerText.match(/[가-힣ㄱ-ㅎㅏ-ㅣ]+/g) || [])] : null;

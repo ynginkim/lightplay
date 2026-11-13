@@ -113,10 +113,12 @@ def referenced_music(root):
         name = music.get("file") if isinstance(music, dict) else None
         if isinstance(name, str) and name:
             for base in (root, doc.parent):
-                try:
-                    keep.add(Path(os.path.normpath(base / name)).relative_to(root).as_posix())
-                except ValueError:
-                    pass
+                path = Path(os.path.normpath(base / name))
+                for p in (path, path.resolve()):
+                    try:
+                        keep.add(p.relative_to(root).as_posix())
+                    except ValueError:
+                        pass
     return keep
 
 
