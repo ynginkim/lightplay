@@ -47,7 +47,7 @@ catch { console.error('playwright-core 가 없다. 한 번만: cd ' + path.dirna
 const MARKER = '.lightplay-capture-profile';
 const MASK = '█';
 const DEFAULTS = { viewport: { width: 1920, height: 1080 }, scale: 2, colorScheme: 'dark', locale: 'en-US', wait: 3000, redact: [] };
-// file:// 포스터가 ../reel/fonts 와 ../assets 를 다른 origin 으로 막히지 않고 읽게 한다
+// 저장된 포스터를 렌더한 poster/shot.mjs 와 같은 플래그. 파일 접근 플래그를 빼면 가로 포스터가 화면 전체에서 1~2단계 달라졌다
 const CHROME_ARGS = ['--force-color-profile=srgb', '--allow-file-access-from-files'];
 
 class Exit extends Error {
@@ -77,7 +77,6 @@ const matches = (page, selector) => page.evaluate(sel => {
   return !!el && !(el.tagName === 'META' && !el.content);
 }, selector);
 
-// 이미지 폭·높이를 파일 헤더에서 직접 읽는다(PNG IHDR, JPEG SOFn).
 function imageSize(b) {
   if (b[0] === 0x89) return [b.readUInt32BE(16), b.readUInt32BE(20)];
   for (let i = 2; i < b.length; i += 2 + b.readUInt16BE(i + 2)) {
@@ -93,7 +92,6 @@ function toHref(url, dir) {
   return pathToFileURL(path.resolve(dir, file)).href + tail;
 }
 
-// 스펙을 읽어 shot 마다 기본값을 합친 실행 계획으로 만든다. 잘못된 입력은 여기서 멈춘다.
 function loadSpec(file) {
   let spec;
   try { spec = JSON.parse(fs.readFileSync(file, 'utf8')); }
@@ -134,13 +132,12 @@ function writeManifest(out, entries) {
   fs.writeFileSync(file, `{\n${lines.join(',\n')}\n}\n`);
 }
 
-// 폰트와 이미지 디코딩이 끝나길 기다린다. 아직 요청도 안 된 lazy 이미지는 기다리지 않고, 멈춘 이미지 하나가 전체를 잡지 못하게 10초로 끊는다.
+// 화면 밖 lazy 이미지의 decode() 는 화면에 들어올 때까지 끝나지 않는다
 const settle = page => page.evaluate(() => Promise.race([
   document.fonts.ready.then(() => Promise.all([...document.images].map(i => (i.loading === 'lazy' && !i.complete ? null : i.decode().catch(() => null))))),
   new Promise(r => setTimeout(r, 10000)),
 ]));
 
-// 보이는 텍스트 노드의 redact 문자열을 같은 길이의 █ 로 바꾸고, redact 순서대로 바꾼 횟수를 돌려준다. 긴 것부터 바꿔 겹치는 이름을 놓치지 않는다.
 const mask = (page, words) => (words.length ? page.evaluate(([words, MASK]) => {
   const res = words.map(w => new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'));
   const order = words.map((_, i) => i).sort((a, b) => words[b].length - words[a].length);
@@ -174,7 +171,6 @@ async function captureShot(page, s, out, check) {
   }
   if (res && res.status() >= 400) throw new Error(`HTTP ${res.status()}`);
 
-  // 대상을 못 찾으면 아무 파일도 쓰기 전에 실패하도록 스틸보다 먼저 푼다
   const { to, offset = 0, frames = 90 } = s.scroll || {};
   let end = 0;
   if (s.scroll) {
@@ -218,7 +214,7 @@ async function shots() {
   fs.mkdirSync(out, { recursive: true });
 
   const browser = profile ? null : await chromium.launch({ channel: 'chrome', headless: true, args: CHROME_ARGS });
-  let cur = null;   // 배율·색상·언어는 컨텍스트 단위라서, 이 셋이 바뀔 때만 컨텍스트를 새로 연다
+  let cur = null;
   const failed = [];
   try {
     for (const [i, s] of plan.entries()) {
@@ -265,7 +261,7 @@ async function login() {
       for (const p of ctx.pages()) {
         if (await matches(p, opt.check).catch(() => false)) {   // 페이지 이동 중에는 evaluate 가 던진다
           console.log('로그인 확인. 쿠키는 프로필 폴더에 남았다.');
-          await sleep(1500);   // 쿠키가 디스크에 쓰이길 기다린다
+          await sleep(1500);
           return;
         }
       }

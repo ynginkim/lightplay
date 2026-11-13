@@ -37,7 +37,7 @@ for (let i = 0; i < argv.length; i++) {
 }
 if (!opt.dir) { console.error('사용법: node text_probe.mjs --dir <reel 폴더> [--step 0.1] [--from s] [--to s] [--rate-ko 6] [--rate-en 10] [--min-chars 2] [--base 0] [--groups] [--group-window 0.5] [--no-hangul] [--json out.json]'); process.exit(1); }
 const dir = path.resolve(opt.dir);
-const root = path.resolve(opt.root || path.dirname(dir));     // 서버 루트: reel 의 부모(프로젝트) — ../assets, ../capture 접근용
+const root = path.resolve(opt.root || path.dirname(dir));
 const pagePath = '/' + path.relative(root, path.join(dir, 'index.html')).split(path.sep).join('/');
 const num = (k, d) => (opt[k] === undefined ? d : Number(opt[k]));
 const step = num('step', 0.1), rate = { ko: num('rate-ko', 6), en: num('rate-en', 10) }, minChars = num('min-chars', 2), base = num('base', 0), groupWindow = num('group-window', 0.5);
@@ -68,7 +68,7 @@ function serve(rootDir) {
 
 async function launch() {
   const args = ['--hide-scrollbars', '--font-render-hinting=none', '--disable-lcd-text',
-    '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'];   // render.mjs 와 같은 플래그
+    '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'];
   const exe = process.env.REEL_CHROME_PATH;
   const tries = exe ? [{ executablePath: exe }] : [{ channel: process.env.REEL_CHROME_CHANNEL || 'chrome' }, { channel: 'chromium' }, {}];
   let last;
@@ -79,7 +79,6 @@ async function launch() {
   process.exit(1);
 }
 
-// 페이지 안에서 도는 함수: t 로 seek 한 뒤 보이는 글 블록을 모은다. 장면 요소는 계속 남아 있어 WeakMap 으로 시각 사이를 잇는다.
 function measure([t, hangul]) {
   window.__seek(t);
   const W = window.__meta.width, H = window.__meta.height;
@@ -116,12 +115,11 @@ function measure([t, hangul]) {
     const b = blockOf(p);
     let e = blocks.get(b);
     if (!e) blocks.set(b, e = { text: '', solid: '', last: null, x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity });
-    // 어절마다 inline-block 으로 나뉜 글은 DOM 에 공백이 없다. 화면에서 떨어진 자리에 공백을 넣어 표에 보일 글을 만든다(판정은 공백을 뺀 key 로 한다)
     const h = rects[0].height;
     if (e.last && (rects[0].top > e.last.bottom - h * 0.5 || rects[0].left - e.last.right > h * 0.1)) e.text += ' ';
     e.text += n.data;
     e.last = rects.at(-1);
-    if (op >= 0.9) e.solid += n.data;   // 불투명도가 낮은 글자(페이드 중인 단어, opacity 0 으로 가린 타자 뒷부분)는 아직 읽히는 글로 치지 않는다
+    if (op >= 0.9) e.solid += n.data;
     for (const r of rects) { e.x0 = Math.min(e.x0, r.left); e.y0 = Math.min(e.y0, r.top); e.x1 = Math.max(e.x1, r.right); e.y1 = Math.max(e.y1, r.bottom); }
   }
   const flat = s => s.replace(/\s+/g, ' ').trim(), key = s => s.replace(/\s+/g, '');
@@ -156,8 +154,8 @@ try {
   const from = num('from', 0), to = num('to', meta.duration);
   for (let t = from; t < to - 1e-9; t = from + times.length * step) times.push(Number(t.toFixed(3)));
 
-  const cur = new Map();   // 요소 id → 열려 있는 블록
-  const related = (a, b) => a.includes(b) || b.includes(a);   // 공백 뺀 key 끼리 견준다
+  const cur = new Map();
+  const related = (a, b) => a.includes(b) || b.includes(a);
   for (let i = 0; i < times.length; i++) {
     const r = await page.evaluate(measure, [times[i], wantHangul]);
     if (r.ko?.length) hangulHits.push({ i, t: times[i], words: r.ko });
@@ -197,7 +195,6 @@ const bad = judged.filter(r => !r.ok);
 const never = results.filter(r => r.chars >= minChars && r.ok === null);
 const skipped = results.filter(r => r.chars < minChars);
 
-// 줄마다 요소가 나뉜 캡션은 한꺼번에 뜨니 사람에겐 한 덩이다. 묶음 시작은 첫 구성원 기준이라 줄줄이 이어 붙지 않는다.
 const groups = [], open = new Map();
 for (const r of [...judged].sort((a, b) => a.fullFrom - b.fullFrom)) {
   const end = r3(r.fullFrom + r.run);
@@ -208,13 +205,13 @@ for (const r of [...judged].sort((a, b) => a.fullFrom - b.fullFrom)) {
   g.members.push(r);
 }
 const grouped = groups.filter(g => g.members.length > 1).map(g => {
-  const uniq = [...new Map(g.members.map(m => [m.text, m])).values()];   // 같은 글을 요소 둘로 띄운 경우 사람은 한 번만 읽는다
+  const uniq = [...new Map(g.members.map(m => [m.text, m])).values()];
   const run = r3(g.to - g.from), need = r3(uniq.reduce((n, m) => n + m.chars / rate[m.lang], 0) + base);
   return { scene: g.scene, from: g.from, run, need, chars: g.members.reduce((n, m) => n + m.chars, 0), members: g.members.length, ok: run + 1e-6 >= need, text: g.members.map(m => m.text).join(' | ') };
 }).sort((a, b) => a.from - b.from);
 const badGroups = grouped.filter(g => !g.ok);
 
-const wid = s => [...s].reduce((n, c) => n + (c.codePointAt(0) > 0x2e7f ? 2 : 1), 0);   // 한글·전각은 2칸
+const wid = s => [...s].reduce((n, c) => n + (c.codePointAt(0) > 0x2e7f ? 2 : 1), 0);
 const pad = (s, n, left) => { const sp = ' '.repeat(Math.max(0, n - wid(s))); return left ? sp + s : s + sp; };
 const cut = (s, n) => { if (wid(s) <= n) return s; let o = ''; for (const c of s) { if (wid(o + c) > n - 1) break; o += c; } return o + '…'; };
 const line = (r, mark) => `${pad(r.first.toFixed(1), 6, 1)}  ${pad(r.scene, 6)} ${pad(r.run.toFixed(1) + 's', 6, 1)} ${pad(r.need.toFixed(1) + 's', 6, 1)} ${pad(String(r.chars), 4, 1)}  ${r.lang}  ${mark}   ${cut(r.text, 60)}`;

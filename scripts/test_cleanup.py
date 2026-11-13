@@ -13,7 +13,6 @@ CLEANUP = Path(__file__).resolve().parents[1] / "skills/resolve-showreel-tools/s
 
 KEEP, FOLLOWUP, DISCARD = "keep", "followup", "discard"
 
-# 가짜 프로젝트의 파일마다, 정리가 어느 갈래로 다뤄야 하는지(요구사항). 파일 내용은 경로 문자열이다.
 FIXTURE = {
     "out/demo_60s.mp4": KEEP,
     "out/demo_60s_공유용.mp4": KEEP,
@@ -27,10 +26,10 @@ FIXTURE = {
     "audio/vo/n01.wav": KEEP,
     "audio/vo_en/n01.wav": KEEP,
     "audio/sfx/hit.wav": KEEP,
-    "audio/music/music.wav": KEEP,            # script.json 이 가리킨다
-    "audio/music/for_timeline.wav": KEEP,     # timeline_ko.json 만 가리킨다
-    "audio/music/alt.wav": KEEP,              # versions/alt/script.json 이 가리킨다
-    "audio/music/music_54s.wav": KEEP,        # versions/54s/ 가 있으니 그 판의 음악이다
+    "audio/music/music.wav": KEEP,
+    "audio/music/for_timeline.wav": KEEP,
+    "audio/music/alt.wav": KEEP,
+    "audio/music/music_54s.wav": KEEP,
     "audio/music/score.mjs": KEEP,
     "audio/music/analysis.json": KEEP,
     "audio/music/verify/hits_waveform.png": KEEP,

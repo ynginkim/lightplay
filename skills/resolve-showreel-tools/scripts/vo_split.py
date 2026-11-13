@@ -40,32 +40,32 @@ from pathlib import Path
 
 import numpy as np
 
-SR = 48000                  # 클립·소리 크기 분석
-HOP = 0.01                  # 소리 크기 프레임(초)
+SR = 48000
+HOP = 0.01
 PAD_IN, PAD_OUT = 0.12, 0.22
-GAP_LINE = 0.25             # 줄 사이 최소 틈. 장면 끝 앞 여유도 같은 값
-THETA_STT = 0.5             # 받아쓴 글과 원고 유사도가 이 아래면 그 줄의 테이크로 안 본다
-THETA_AUDIO = 0.3           # 기준 낭독과 닮은 정도(z)가 이 아래면 그 줄의 테이크로 안 본다
-COVER = 0.3                 # 구간이 길수록(초당) 더하는 점수. 쉼표 앞부분만 줄로 잡고 앞 덩어리를 남기지 않게
-PRIOR, PRIOR_TOL = 2.0, 0.3 # 말 길이가 평소 속도 비율에서 벗어난 만큼 z 에서 뺀다(비율 로그 차이가 PRIOR_TOL 을 넘는 부분)
-FULL_SLACK = 0.12           # 받아쓰기: 마지막 테이크 유사도가 최고보다 이만큼 넘게 낮으면 끝까지 읽지 않은 것으로 본다
-RETAKE_DIST = 14.5          # 같은 줄의 테이크끼리 MFCC+DTW 거리 상한. 같은 문장 9~13.5, 다른 문장 14.9 이상(README 녹음 두 개와 추수감사 녹음에서 잰 값)
-MIN_EDGE_RUN = 0.25         # 줄 묶음의 처음·끝 덩어리는 이보다 길어야 한다(짧은 군말 "어"가 줄에 붙지 않게)
-GROUP_RUNS, GROUP_GAP = 4, 1.2             # 한 줄로 묶을 말 덩어리 수·덩어리 사이 쉼(초) 상한
+GAP_LINE = 0.25
+THETA_STT = 0.5
+THETA_AUDIO = 0.3
+COVER = 0.3
+PRIOR, PRIOR_TOL = 2.0, 0.3
+FULL_SLACK = 0.12
+RETAKE_DIST = 14.5
+MIN_EDGE_RUN = 0.25
+GROUP_RUNS, GROUP_GAP = 4, 1.2
 SAY_PREFERRED = ["Eddy", "Reed", "Flo", "Shelley", "Grandma", "Daniel", "Samantha", "Yuna"]
 
 
 @dataclass
 class Take:
-    line: int                # script.json lines 번호
-    method: str              # stt | audio | manual
-    score: float             # stt 유사도(0~1) · audio 닮은 정도(z, 클수록 닮음) · manual 0
-    s: float                 # 말 구간 어림(원본 초): STT 단어 시각 · 소리 덩어리 · 사용자 지정
+    line: int
+    method: str
+    score: float
+    s: float
     e: float
-    words: list = field(default_factory=list)   # stt: [[단어, 시작, 끝]]
-    on: float = 0.0          # 다듬은 말 시작·끝(원본 초)
+    words: list = field(default_factory=list)
+    on: float = 0.0
     off: float = 0.0
-    c0: float = 0.0          # 클립 구간(원본 초)
+    c0: float = 0.0
     c1: float = 0.0
 
 
@@ -96,8 +96,6 @@ def pcm(path, sr):
 
 
 class Sound:
-    """녹음 한 파일의 소리 크기. 말은 소음 바닥 + 12dB 를 넘는 소리다."""
-
     def __init__(self, path):
         self.path = Path(path)
         x = pcm(self.path, SR)
@@ -111,7 +109,6 @@ class Sound:
         self.mask = self.db > self.floor + 12
 
     def runs(self, gap, minlen=0.0):
-        """말소리 덩어리 [시작, 끝](초). 60ms 보다 짧은 소리(입술 소리·딸깍)는 버리고, gap 이하 쉼은 이어 붙인 뒤 minlen 보다 짧은 덩어리를 버린다."""
         d = np.diff(np.concatenate([[0], self.mask.astype(np.int8), [0]]))
         out = []
         for a, b in zip(np.where(d == 1)[0] * HOP, np.where(d == -1)[0] * HOP):
@@ -124,16 +121,11 @@ class Sound:
         return [r for r in out if r[1] - r[0] >= minlen]
 
 
-# ── 줄 고르기: 위치(단어·말 덩어리) 구간을 줄에 순서대로 배정 ──
-
 def chain(npos, nlines, cands):
-    """cands (a, b, 줄, gain, 점수, …): 위치 구간 [a, b) 를 그 줄의 테이크로 쓰면 gain.
-    1) 줄마다 하나씩, 위치 순서대로 겹치지 않게, gain 합이 최대가 되도록 대표 테이크를 고른다.
-    2) 이웃 줄의 대표 테이크 사이 빈자리에 들어가는 같은 줄 후보를 gain 큰 순서로 더 넣는다(다시 읽은 테이크)."""
     ending = defaultdict(list)
     for c in cands:
         ending[c[1]].append(c)
-    g = np.zeros((npos + 1, nlines + 1))      # g[p, k]: 위치 p 앞, 줄 k 앞까지 쓸 때 최대 gain
+    g = np.zeros((npos + 1, nlines + 1))
     how = {}
     for p in range(npos + 1):
         for k in range(1, nlines + 1):
@@ -164,7 +156,6 @@ def chain(npos, nlines, cands):
 
 
 def stt_takes(words, lines, blocked):
-    """받아쓴 단어열에서 줄마다 테이크 후보(단어 구간)를 찾아 줄 순서에 맞게 고른다."""
     toks = [w for w in words if w.get("type", "word") == "word" and norm(w["text"])]
     nt = [norm(w["text"]) for w in toks]
     cum = np.concatenate([[0], np.cumsum([len(t) for t in nt])])
@@ -209,10 +200,7 @@ def stt_takes(words, lines, blocked):
     return takes, junk
 
 
-# ── 기준 낭독(say)과 MFCC+DTW ──
-
 def say_voices(lang, want=3):
-    """say -v '?' 목록에서 언어에 맞는 음성 이름(목록에 적힌 그대로) want 개."""
     try:
         out = subprocess.run(["say", "-v", "?"], capture_output=True, text=True, check=True).stdout
     except (FileNotFoundError, subprocess.CalledProcessError):
@@ -225,12 +213,12 @@ def say_voices(lang, want=3):
     if not have:
         die(f"say 에 '{lang}' 음성이 없다(say -v '?') → --stt 로 받아쓰기를 주거나 --spans 로 줄 위치를 직접 지정한다")
     base = lambda v: v.split(" (")[0]
-    have = list({base(v): v for v in reversed(have)}.values())   # 같은 이름의 지역 변형은 하나만
+    have = list({base(v): v for v in reversed(have)}.values())
     have.sort(key=lambda v: SAY_PREFERRED.index(base(v)) if base(v) in SAY_PREFERRED else len(SAY_PREFERRED))
     return have[:want]
 
 
-MR, MH, MN, MM, MC = 16000, 320, 512, 26, 13     # MFCC: 16kHz, 20ms 간격
+MR, MH, MN, MM, MC = 16000, 320, 512, 26, 13
 
 
 def _mel_tables():
@@ -250,7 +238,6 @@ FB, DCT = _mel_tables()
 
 
 def mfcc(x, zscore=True):
-    """구간의 MFCC(0번 계수 제외, 평균을 뺀다). zscore 면 계수마다 분산도 1 로 맞춰 화자 차이를 줄인다(기준 낭독 비교용)."""
     x = x.astype(np.float64)
     x = np.append(x[0], x[1:] - 0.97 * x[:-1])
     fr = np.lib.stride_tricks.sliding_window_view(x, MN)[::MH] * np.hanning(MN)
@@ -264,14 +251,13 @@ def dtw(A, B):
     prev = np.full(D.shape[1] + 1, np.inf)
     prev[0] = 0
     for i in range(D.shape[0]):
-        tmp = D[i] + np.minimum(prev[1:], prev[:-1])      # 위·대각선에서 오는 값
+        tmp = D[i] + np.minimum(prev[1:], prev[:-1])
         cs = np.cumsum(D[i])
-        prev = np.concatenate([[np.inf], cs + np.minimum.accumulate(tmp - cs)])   # 왼쪽에서 이어지는 값까지
+        prev = np.concatenate([[np.inf], cs + np.minimum.accumulate(tmp - cs)])
     return prev[-1] / sum(D.shape)
 
 
 def reference(lines, lang):
-    """줄마다 say 로 읽은 기준 낭독의 (MFCC, 길이) 를 음성별로 만든다."""
     voices = say_voices(lang)
     print(f"기준 낭독 음성: {', '.join(voices)}")
     with tempfile.TemporaryDirectory() as tmp:
@@ -294,11 +280,9 @@ def reference(lines, lang):
 
 
 def alike(Ds):
-    """음성별 DTW 거리 행렬(덩어리×줄)을 닮은 정도 z(클수록 닮음)로 바꿔 음성끼리 평균한다.
-    줄 방향·덩어리 방향으로 번갈아 표준화해, 아무 말에나 가까운 기준 낭독과 아무 줄에나 가까운 덩어리의 쏠림을 뺀다."""
     out = []
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+        warnings.simplefilter("ignore", RuntimeWarning)
         for X in Ds:
             for _ in range(2):
                 X = (X - np.nanmean(X, 1, keepdims=True)) / (np.nanstd(X, 1, keepdims=True) + 1e-9)
@@ -308,7 +292,6 @@ def alike(Ds):
 
 
 def audio_takes(snd, lines, lang, blocked):
-    """소리 덩어리를 쉼표 자리 쉼까지 묶어 후보 구간으로 만들고, 기준 낭독과 닮은 정도로 줄에 순서대로 배정한다."""
     utt = snd.runs(0.30, 0.12)
     groups = []
     for i in range(len(utt)):
@@ -326,7 +309,7 @@ def audio_takes(snd, lines, lang, blocked):
         D = np.full((len(groups), len(lines)), np.nan)
         for g, (A, d) in enumerate(zip(gx, gd)):
             for k, (B, rd) in enumerate(R):
-                if lines[k]["id"] not in blocked["ids"] and 0.4 <= d / rd <= 2.6:   # 길이가 너무 다르면 같은 문장일 수 없다
+                if lines[k]["id"] not in blocked["ids"] and 0.4 <= d / rd <= 2.6:
                     D[g, k] = dtw(A, B)
         Ds.append(D)
 
@@ -337,12 +320,12 @@ def audio_takes(snd, lines, lang, blocked):
 
     Z, gd, rd = alike(Ds), np.array(gd), np.mean([[r[1] for r in R] for R in ref], axis=0)
     best = solve(Z)
-    if best:   # 이 사람이 기준 낭독보다 평소 몇 배 빠르게 읽는지를 첫 결과의 중앙값으로 잡고, 그 비율에서 먼 길이(읽다 만 테이크·절반만 묶은 덩어리)는 점수를 깎는다
+    if best:
         rho = np.median([gd[c[5]] / rd[c[2]] for c in best])
         Z = Z - PRIOR * np.maximum(0, np.abs(np.log(gd[:, None] / rd[None, :] / rho)) - PRIOR_TOL)
         best = solve(Z)
     takes = [Take(k, "audio", float(z), utt[i][0], utt[j - 1][1]) for i, j, k, _, z, _ in best]
-    same = []   # 같은 줄의 테이크는 서로 같은 문장으로 들려야 한다(군말·다른 줄의 앞부분이 마지막 테이크로 뽑히는 것을 막는다)
+    same = []
     for k in {t.line for t in takes}:
         ts = [t for t in takes if t.line == k]
         top = max(ts, key=lambda t: t.score)
@@ -352,10 +335,7 @@ def audio_takes(snd, lines, lang, blocked):
     return same, junk
 
 
-# ── 가장자리 다듬기·클립·정렬 ──
-
 def refine(takes, snd):
-    """말 시작·끝(on/off)을 소리 크기로 다듬고 클립 구간 c0~c1 을 정한다. 이웃 테이크와 다른 말소리 덩어리 안으로는 넘지 않는다."""
     fine = snd.runs(0.15)
     order = sorted(takes, key=lambda t: t.s)
     for i, t in enumerate(order):
@@ -381,7 +361,6 @@ def cut(snd, t, mp3):
 
 
 def heard_times(text, t):
-    """원고 글자(문자·숫자)마다 STT 단어 시각을 배정한다. 받아쓴 글자와 맞는 글자는 그 시각을 쓰고, 틀린 글자는 이웃 사이에서 보간한다."""
     mine = [c.lower() for c in text if c.isalnum()]
     heard = []
     for w, a, b in t.words:
@@ -396,7 +375,6 @@ def heard_times(text, t):
 
 
 def spread_times(text, parts):
-    """글자를 말한 시간(쉼 제외)에 고르게 편다. 쉼표로 나뉜 구절 수와 말 덩어리 수가 같으면 구절마다 제 덩어리에 편다."""
     segs = [n for n in (sum(c.isalnum() for c in s) for s in re.split(r"(?<=[,;:…])", text)) if n]
     groups = list(zip(segs, [[p] for p in parts])) if len(segs) == len(parts) else [(sum(segs), parts)]
     t0, t1 = [], []
@@ -416,7 +394,6 @@ def spread_times(text, parts):
 
 
 def align_json(text, t0, t1, first, last, c0):
-    """글자별 시각 → ElevenLabs 정렬 형식(클립 안 초). 시각이 없는 글자는 이웃 글자 사이에서 보간하고, 공백·문장부호는 앞 글자 끝에 둔다."""
     t0, t1 = list(t0), list(t1)
     i, prev = 0, first
     while i < len(t0):
@@ -448,7 +425,6 @@ def align_json(text, t0, t1, first, last, c0):
 
 
 def write_clip(snd, l, t, out):
-    """클립 mp3 + 정렬 json 을 쓰고 report.json 항목을 돌려준다."""
     cut(snd, t, out / f"{l['id']}.mp3")
     text = l.get("tts") or l["text"]
     if t.words:
@@ -465,10 +441,7 @@ def write_clip(snd, l, t, out):
     return r
 
 
-# ── 줄별 최종 테이크 고르기 ──
-
 def pick(lines, takes, junk):
-    """줄마다 마지막 테이크를 쓴다. 단, 최고 점수보다 많이 낮은 소리(읽다 만 것·다른 줄의 앞부분)는 테이크로 안 친다. 버린 구간 목록도 만든다."""
     by = defaultdict(list)
     for t in takes:
         by[t.line].append(t)
@@ -484,7 +457,6 @@ def pick(lines, takes, junk):
 
 
 def report(lines, chosen, snd, out, dry, timeline, unused):
-    """줄별 표를 찍고(--timeline 이면 장면 안 자리까지) 클립·정렬·report.json 을 쓴다. ✗ 개수를 돌려준다."""
     scenes = [x for x in (timeline or {}).get("scenes", []) if isinstance(x.get("start"), (int, float)) and isinstance(x.get("end"), (int, float))]
     if timeline and not scenes:
         die("timeline.json 의 scenes 에 숫자 start/end 가 없다 → timeline.py 를 먼저 실행한다")

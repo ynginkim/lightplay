@@ -8,8 +8,8 @@
   cleanup.py <프로젝트> --apply --delete      휴지통 대신 바로 지운다(되돌릴 수 없다)
   [--trash-dir <폴더>]                        휴지통 위치(기본 ~/.Trash). 안에 lightplay-cleanup-<프로젝트>-<시각>/ 을 만들고 원래 경로 그대로 옮긴다
 
-파일은 세 갈래 중 하나다. 어느 갈래인지는 아래 RULES 표가 정하고, 위에서부터 처음 맞는 줄이 이긴다.
-  남긴다          납품본, 최종 믹스, 영상이 쓰는 음악, 최종 시트, 그 밖에 표가 건드리지 않는 모든 것. 목록에 나오지 않는다.
+파일은 세 갈래 중 하나다.
+  남긴다          납품본, 최종 믹스, 영상이 쓰는 음악, 최종 시트, 그 밖의 모든 것. 목록에 나오지 않는다.
   후속 작업용     나레이션·음악만 고쳐 다시 마감할 때 쓰는 것(무음 렌더, 렌더 조각, 음악 스템, 녹음 원본). --followup 이 있어야 옮긴다.
   다시 안 쓸 것   초안, 점검 영상, 믹스 스템, 시험 믹스, 안 쓴 음악 테이크, 검수 스틸. --apply 가 옮긴다.
 
@@ -29,16 +29,14 @@ MEDIA = {".mp4", ".mov", ".webm", ".mkv", ".m4v"}
 AUDIO = {".wav", ".mp3", ".m4a", ".aac", ".flac", ".aiff", ".aif"}
 IMAGE = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 POSTER = "_포스터.jpg"
-MIX_STEMS = ("_premaster.wav", "_vo.wav", "_bed.wav")   # mix.py 가 <최종>.wav 옆에 쓰는 점검용 스템
+MIX_STEMS = ("_premaster.wav", "_vo.wav", "_bed.wav")
 PIECE_DIRS = (".pieces", ".parts")
-TOP_DIRS = ("out", "audio", "qa")                         # 표가 다루는 폴더. 나머지(reel, assets, 문서, json)는 보지 않는다
-LIST_LIMIT = 10                                           # 줄(label)마다 보여 주는 경로 수
+TOP_DIRS = ("out", "audio", "qa")
+LIST_LIMIT = 10
 
 KEEP, FOLLOWUP, DISCARD = "keep", "followup", "discard"
 TITLE = {DISCARD: "다시 안 쓸 것", FOLLOWUP: "후속 작업용"}
 
-# match(p, c): p 는 프로젝트 기준 상대 경로(PurePosixPath), c 는 Project
-# unit(p): 목록에서 파일 대신 보여 줄 폴더(렌더 조각처럼 폴더째 한 줄로 읽히는 것). 옮길 때는 언제나 파일 단위다
 Rule = namedtuple("Rule", "bucket label match unit", defaults=(None,))
 Project = namedtuple("Project", "stems music_keep version_suffixes")
 
