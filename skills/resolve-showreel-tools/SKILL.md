@@ -81,8 +81,8 @@ python3 $S/new_project.py <프로젝트> --ratio 16:9 --duration 60 [--fonts "Ha
 | codex CLI, codex-image·photoreal 스킬 | build-video-scenes | 사용자 전역 설치(홈의 .claude/skills). 이미지당 약 1분, 플랜 사용량 차감 |
 | swiftc(macOS) | build-video-scenes(누끼) | 없으면 누끼 없이 진행 |
 | 공용 효과음 라이브러리 | prepare-video-audio, deliver-video | `sfx_library.py`가 `--lib`, 환경 변수 `SHOWREEL_SFX_LIBRARY`, `$CLAUDE_PROJECT_DIR/sfx-library` 순으로 찾는다. 셋 다 없으면 위치를 모른다며 멈춘다. 이때는 `sfx_library.py --lib <작업 폴더>/sfx-library find 종이`처럼 하위 명령 앞에 `--lib`를 붙인다 |
-| `asset_qa.py` | 에셋 프레임 폴더 검수 | `players` `routes` `loop` `ink` `motion` `markers` `themes` `sheet` `report`. numpy·Pillow. 판정은 그림 영역의 최악 프레임으로 한다. 플레이어 비교는 32 초과 화소 5% 초과 ✗, 1.5% 또는 평균 5.0 초과 △. 경로 비교는 20% 초과 ✗, 평균 3.0 또는 가장자리 채도 차이 0.01 초과 △. 두 폴더의 배경색이 24 넘게 다르면 ✗. 루프·마커 이음새 비 1.5 초과 △·루프는 ✗. ✗는 종료 코드 1, 도구 오류는 2. 1080p 480프레임 `report`는 10코어에서 43~53초(다른 작업이 도는 부하 평균 9~14에서 잰 값) |
-| `encode_asset.py` | 에셋 프레임 폴더 인코딩 | GIF(폭 480, 간격은 10 ms 정수배라 60→50fps)·VP9 WebM(알파)·APNG·MP4. WebM·MP4는 BT.709 행렬·원색, sRGB 곡선으로 태그한다. 프레임 번호가 끊기면 거부한다. ffmpeg. 1080p 480프레임 WebM은 10코어에서 27~33초(같은 부하) |
+| `asset_qa.py` | 에셋 프레임 폴더 검수 | `players` `routes` `loop` `ink` `motion` `markers` `themes` `sheet` `report`. numpy·Pillow. 판정은 그림 영역의 최악 프레임으로 한다. 플레이어 비교는 32 초과 화소 5% 초과 ✗, 1.5% 또는 평균 5.0 초과 △. 경로 비교는 20% 초과 ✗, 평균 12.0 또는 가장자리 채도 차이 0.01 초과 △. 두 폴더의 배경색이 24 넘게 다르면 ✗. 마커의 진입·루프 이음새는 구간 안 프레임 간 변화에 대한 비로 1.5 이하 ✓, 3.0 이하 △, 3.0 초과 ✗(구간 프레임이 모자라면 절대 차이 1.0·3.0). 루프는 비 1.5 초과 ✗. ✗는 종료 코드 1, 도구 오류는 2. 1080p 480프레임 `report`는 10코어에서 42~45초 |
+| `encode_asset.py` | 에셋 프레임 폴더 인코딩 | GIF(Pillow, 폭 480, 50fps 이하, 지연은 누적 반올림이라 길이가 10 ms 안에서 맞는다)·VP9 WebM(알파)·APNG·MP4. WebM·MP4는 BT.709 행렬·원색, sRGB 곡선으로 태그한다. 프레임 번호가 끊기면 거부한다. 오류는 종료 코드 2. ffmpeg. 1080p 480프레임 WebM은 10코어에서 약 27초 |
 
 ## 자료 위치
 

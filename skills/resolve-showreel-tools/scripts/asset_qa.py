@@ -17,8 +17,10 @@
   가장 나쁜 프레임으로 정한다. JSON 의 mean_abs_diff 는 스파이크 harness/measure.py 와 같은 전체 화면 평균이라 비교할 수 있다.
   loop 의 비는 이음새 / max(중앙 변화, 0.05) 다(measure.py 는 하한이 없다).
   report 는 --theme 시트를 --sheet-dir 에, 없으면 --out/--json 이 있는 폴더에 쓴다(둘 다 없으면 오류). 줄에 시트 경로를 적는다.
-  경계값(LIMITS): 플레이어 비교는 그림 영역 최악 프레임의 32 초과 화소 5% 초과가 ✗, 1.5% 또는 평균 5.0 초과가 △. 경로 비교는 20% 초과가 ✗,
-  평균 3.0 초과나 가장자리 채도 차이 0.01 초과가 △. 두 폴더의 배경색(불투명 캡처)이 24 넘게 다르면 ✗. 루프·마커 이음새 비는 1.5 초과가 △(마커는 3.0 초과 ✗, 루프는 ✗).
+  경계값(LIMITS): 플레이어 비교는 그림 영역 최악 프레임의 32 초과 화소 5% 초과가 ✗, 1.5% 또는 평균 5.0 초과가 △. 경로 비교는 32 초과 화소 20% 초과가 ✗,
+  그림 영역 최악 프레임 평균 12.0 초과나 가장자리 채도 차이 0.01 초과가 △. 두 폴더의 배경색(불투명 캡처)이 24 넘게 다르면 ✗.
+  마커의 루프 이음새와 진입 경계는 구간 안 프레임 간 변화(중앙값, 앞 12스텝)에 대한 비로 본다. 1.5 이하 ✓, 3.0 이하 △, 3.0 초과 ✗. 구간 프레임이 모자라면 절대 차이 1.0·3.0 으로 본다.
+  loop 줄은 비 1.5 초과가 ✗(△ 없음). 테마는 모든 공통 프레임에서 바뀐 화소(배경 포함)가 4개 미만이면 ✗.
   report 의 루프 줄은 --loop 이거나 dotLottie manifest 가 loop 이면 건다. 아니면 "-" 로 두고, 마커 구간의 루프 이음새는 markers 줄이 본다.
   두 폴더의 프레임 번호가 다르면 ✗ 다. 듬성하게 캡처한 쪽(예: lottie-web 120프레임)과 비교하려면 players·routes·report 에 --common 을 붙인다. 줄에 비교한 개수를 적는다.
 종료 코드
@@ -47,7 +49,7 @@ ALPHA_SHARE = 0.005
 GRID_SAMPLES = 24
 LIMITS = {
     "players_fail_pct32": 5.0, "players_warn_pct32": 1.5, "players_warn_mean": 5.0,
-    "routes_warn_mean": 3.0, "routes_warn_gap": 0.01,
+    "routes_warn_cmean": 12.0, "routes_warn_gap": 0.01,
     "loop_ok": 1.5, "loop_warn": 3.0,
     "ink_min": 0.0005,
     "motion_fail_static": 0.95,
@@ -208,7 +210,7 @@ def diff_one(job):
     bga, bgb = background(xa), background(xb)
     r = {"frame": i, "bg_diff": float(np.abs(bga - bgb).max()) if bga is not None and bgb is not None else 0.0, "mean": float(d.mean()), "pct_over_32": float((d > 32).mean() * 100),
          "cmean": float(d[u].mean()) if u.any() else 0.0, "cpct": float((d[u] > 32).mean() * 100) if u.any() else 0.0,
-         "changed": int(((d > 16) & u).sum()), "ink_a": float(ma.mean()), "ink_b": float(mb.mean()),
+         "changed": int((d > 16).sum()), "ink_a": float(ma.mean()), "ink_b": float(mb.mean()),
          "alpha_a": has_alpha(xa), "alpha_b": has_alpha(xb)}
     if grid:
         r["sat"] = cell_means(saturation(ca) - saturation(cb), grid)
@@ -338,8 +340,8 @@ def check_routes(A, B, grid=8, sheet=None, common_only=False):
         out[key] = {"grid": [[round(float(v), 4) for v in row] for row in mean], **{z: round(float(np.mean(v)), 4) for z, v in zones.items() if v}}
     s.update(grid=grid, blank_one_side=blank, background_differs=bg_off, saturation_A_minus_B=out["sat"], level_A_minus_B=out["level"])
     m, gap = s["mean_abs_diff"]["avg"], out["sat"]["가장자리"]
-    wp = s["content_pct_over_32"]
-    line = (f"평균 {m} /255, 그림 영역 최악 f{wp['worst_frame']} 32 초과 {wp['max']}%, 채도 차이 가장자리 {gap:+.4f} 가운데 {out['sat']['가운데']:+.4f}, "
+    wp, wm = s["content_pct_over_32"], s["content_mean_abs_diff"]
+    line = (f"평균 {m} /255, 그림 영역 최악 f{wp['worst_frame']} 32 초과 {wp['max']}%·평균 최악 f{wm['worst_frame']} {wm['max']}, 채도 차이 가장자리 {gap:+.4f} 가운데 {out['sat']['가운데']:+.4f}, "
             f"밝기 차이 가장자리 {out['level']['가장자리']:+.3f} 가운데 {out['level']['가운데']:+.3f}") + note
     if not finite(m, gap, out["sat"]["가운데"]):
         st, fix = FAIL, "수치가 유한하지 않다. 프레임을 다시 렌더한다"
@@ -351,8 +353,8 @@ def check_routes(A, B, grid=8, sheet=None, common_only=False):
         st, fix = FAIL, "한 프레임이라도 두 경로의 그림이 크게 다르다. 그 프레임을 시트로 열어 어느 출력기가 틀렸는지 본다"
     elif abs(gap) > LIMITS["routes_warn_gap"]:
         st, fix = WARN, "한 경로의 가장자리 채도가 다르다. 엔진 쪽 색 관리(sRGB, 흐린 배경의 알파 합성)와 인코딩 색 태그를 확인한다"
-    elif m > LIMITS["routes_warn_mean"]:
-        st, fix = WARN, "engineOnly 노드 때문인지 확인한다"
+    elif s["content_mean_abs_diff"]["max"] > LIMITS["routes_warn_cmean"]:
+        st, fix = WARN, "그림 영역 평균 차이가 큰 프레임이 있다. engineOnly 노드 때문인지, 한 경로의 색이 틀렸는지 시트로 확인한다"
     elif alpha_diff:
         st, fix = WARN, "한쪽만 알파가 있다. 같은 배경 설정으로 다시 렌더한다"
     else:
@@ -523,7 +525,7 @@ def pose_diff(F, a, b):
 
 
 def segment_step(F, a, b):
-    nums = [i for i in range(a, b + 1) if i in F]
+    nums = [i for i in range(a, min(b, a + 12) + 1) if i in F]
     if len(nums) < 2 or nums != list(range(nums[0], nums[-1] + 1)):
         return None
     return float(np.median([pose_diff(F, nums[k], nums[k + 1]) for k in range(len(nums) - 1)]))
@@ -554,7 +556,7 @@ def check_markers(lottie, d, loop_names=("idle", "loop")):
                 missing |= gone
                 continue
             pair = {"pair": name, "a": a, "b": b, "kind": kind, "diff": pose_diff(F, a, b)}
-            if kind == "seam":
+            if kind in ("seam", "entry"):
                 step = segment_step(F, m["from"], m["to"] - 1)
                 if step is not None:
                     pair["median_step"], pair["ratio"] = round(step, 3), round(pair["diff"] / max(step, STATIC_STEP), 2)

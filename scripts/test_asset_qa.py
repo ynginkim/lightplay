@@ -602,19 +602,85 @@ class GifRound3(Tmp):
             write_frames(self.tmp / f"d{fps}", [square(2 + k % 40) for k in range(n)])
             r = encode(self.tmp / f"d{fps}", self.tmp / f"d{fps}", "--formats", "gif", "--fps", str(fps))
             self.assertEqual(r.returncode, 0, r.stderr)
-            want = n / fps * 1000
-            self.assertLessEqual(abs(self.gif_ms(self.tmp / f"d{fps}.gif") - want) / want, 0.01, fps)
+            self.assertAlmostEqual(self.gif_ms(self.tmp / f"d{fps}.gif"), n / fps * 1000, delta=10, msg=fps)
 
     def test_opaque_gif_plays_for_the_right_time(self):
         write_frames(self.tmp / "o", [opaque(48, 48, 20 + 2 * k) for k in range(60)])
         r = encode(self.tmp / "o", self.tmp / "o", "--formats", "gif", "--fps", "30")
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertLessEqual(abs(self.gif_ms(self.tmp / "o.gif") - 2000) / 2000, 0.02)
+        self.assertAlmostEqual(self.gif_ms(self.tmp / "o.gif"), 2000, delta=10)
 
     def test_bad_fps_exits_2(self):
         write_frames(self.tmp / "f", [square(2)] * 2)
         for bad in ("0", "-5", "nan"):
             self.assertEqual(encode(self.tmp / "f", self.tmp / "x", "--fps", bad).returncode, 2, bad)
+
+
+class Round4(Tmp):
+    def lottie(self, op, marks):
+        p = self.tmp / "m.json"
+        p.write_text(json.dumps({"v": "5.7.0", "fr": 60, "ip": 0, "op": op, "w": 128, "h": 128, "layers": [], "markers": [{"cm": n, "tm": t, "dr": d} for n, t, d in marks]}))
+        return p
+
+    def test_smooth_marker_entry_passes_by_ratio_and_a_jump_still_fails(self):
+        write_frames(self.tmp / "c", [disc(k, 60) for k in range(90)])
+        row, data = qa.check_markers(str(self.lottie(90, [("intro", 0, 30), ("loop", 30, 60)])), str(self.tmp / "c"))
+        self.assertEqual(row.status, qa.OK, row.line)
+        self.assertTrue(any(p["pair"] == "loop 진입" and "ratio" in p for p in data["pairs"]))
+        frames = [disc(k, 60) for k in range(90)]
+        frames[30:] = [np.roll(f, 40, axis=1) for f in frames[30:]]
+        write_frames(self.tmp / "j", frames)
+        self.assertNotEqual(qa.check_markers(str(self.lottie(90, [("intro", 0, 30), ("loop", 30, 60)])), str(self.tmp / "j"))[0].status, qa.OK)
+
+    def test_background_only_theme_change_is_a_theme(self):
+        def on(grey):
+            a = opaque(64, 64, grey)
+            a[20:40, 20:40, :3] = (200, 40, 40)
+            return a
+        write_frames(self.tmp / "w", [on(255)] * 3)
+        write_frames(self.tmp / "k", [on(0)] * 3)
+        row, _ = qa.check_themes([("light", str(self.tmp / "w")), ("dark", str(self.tmp / "k"))])
+        self.assertEqual(row.status, qa.OK, row.line)
+
+    def test_routes_warns_on_a_recoloured_frame(self):
+        base = [square(10, color=(200, 40, 40, 255))] * 20
+        shape = np.zeros((64, 64, 4), np.uint8)
+        shape[12:52, 12:52] = (200, 40, 40, 255)
+        a = [shape] * 20
+        b = [shape.copy() for _ in range(20)]
+        b[7][12:52, 12:52, :3] = (220, 60, 60)
+        write_frames(self.tmp / "a", a)
+        write_frames(self.tmp / "b", b)
+        row, data = qa.check_routes(str(self.tmp / "a"), str(self.tmp / "b"))
+        self.assertEqual(row.status, qa.WARN, row.line)
+        self.assertIn("f7", row.line)
+
+
+@unittest.skipUnless(ENC, "ffmpeg and ffprobe are required")
+class EncodeRound4(Tmp):
+    def gif_ms(self, path):
+        with Image.open(path) as im:
+            return sum(f.info["duration"] for f in ImageSequence.Iterator(im))
+
+    def test_short_gifs_match_frames_over_fps(self):
+        for fps, n in ((30, 15), (24, 15), (60, 15), (25, 7), (12, 5)):
+            write_frames(self.tmp / f"s{fps}_{n}", [square(2 + 3 * k) for k in range(n)])
+            r = encode(self.tmp / f"s{fps}_{n}", self.tmp / f"s{fps}_{n}", "--formats", "gif", "--fps", str(fps))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertAlmostEqual(self.gif_ms(self.tmp / f"s{fps}_{n}.gif"), n / fps * 1000, delta=10, msg=f"{fps}fps {n}")
+
+    def test_unexpected_errors_exit_2_with_one_line(self):
+        write_frames(self.tmp / "ok", [square(2), square(5), square(9)])
+        write_frames(self.tmp / "cut", [square(2), square(5), square(9)])
+        data = (self.tmp / "cut/f00001.png").read_bytes()
+        (self.tmp / "cut/f00001.png").write_bytes(data[:60])
+        (self.tmp / "taken.gif").mkdir()
+        cases = [(self.tmp / "cut", self.tmp / "o1"), (self.tmp / "ok", "/dev/null/x"), (self.tmp / "ok", self.tmp / "taken")]
+        for src, name in cases:
+            r = encode(src, name, "--formats", "gif")
+            self.assertEqual(r.returncode, 2, f"{src} {name}: {r.stderr}")
+            self.assertNotIn("Traceback", r.stderr)
+            self.assertEqual(len(r.stderr.strip().splitlines()), 1, r.stderr)
 
 
 if __name__ == "__main__":
