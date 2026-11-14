@@ -14,7 +14,7 @@ Read ../resolve-showreel-tools/SKILL.md
 
 - 최종 렌더 뒤에는 `motion_check.py`를 반드시 다시 돌린다.
 - 사운드를 직접 들어 봐 달라고 요청한다. Claude는 소리를 들을 수 없고 수치로만 확인했다.
-- 지우는 일은 사용자가 영상을 확인하고 끝났다고 한 뒤에만 한다. 크레딧을 쓴 `audio/vo/`·`audio/sfx/`, 음악 악보와 쓰인 음악, `assets/`, 납품본, 재현 코드, 최종 검수 기록은 지우지 않는다.
+- 정리는 사용자가 영상을 확인하고 끝났다고 한 뒤에만 하고, 휴지통으로 옮기는 것이 기본이다. 크레딧을 쓴 `audio/vo/`·`audio/sfx/`, 최종 믹스, 음악 악보와 쓰인 음악, `assets/`, 납품본, 재현 코드, 최종 검수 기록은 옮기지 않는다.
 - 마감 출력 파일 이름을 입력 영상과 같게 두지 않는다. 새 검수가 끝날 때까지 기존 마스터를 보존한다.
 - 모든 작업 파일은 프로젝트 폴더 안에 둔다.
 
@@ -72,6 +72,26 @@ python3 $S/qa_check.py <프로젝트>/out/<이름>.mp4 --timeline <프로젝트>
 
 규격, 음량, 너무 어두운 구간, 섬광, 멈춘 화면, 완성 믹스의 받아쓰기(숫자 오인식 포함)를 검사하고 `qa/qa_report.md`와 최종 시트를 만든다. "고칠 것"을 모두 처리하고 최종 시트를 Read로 본 뒤 납품한다. STT에서 한 번만 틀린 줄은 한 번 더 돌려 두 번 다 틀릴 때 고친다. 보고를 읽는 법은 `../critique-video/references/qa.md`의 "자동 검수(qa_check.py) 읽는 법"에 있다. 이 검수는 보고서를 쓰고도 정상 종료하므로 종료 코드가 아니라 보고의 "고칠 것"을 읽는다. **principle-judge-rendered-evidence**를 적용한다.
 
+## README·GitHub용 사본
+
+GitHub README에 넣을 영상은 첨부 한도(무료 플랜 10MB) 안에 드는 사본을 따로 만든다. GitHub 웹 편집기에 이 파일을 끌어 넣으면 README 안에서 재생된다. 마스터는 그대로 둔다.
+
+- 영상 비트레이트(kbps)는 `72000 / 길이(초) - 150` 정도로 시작한다(54초 1200k, 60초 1050k로 9MB 안팎이 나왔다). 오디오는 AAC 128k이고, AAC로 바꾸면 피크가 오르므로 믹스를 1dB 낮춰 넣는다.
+- 2패스로 인코딩한다. 입력은 무음 렌더 `out/video.mp4`이고, 지웠으면 마스터의 영상 스트림을 쓴다.
+
+```bash
+ffmpeg -y -i <프로젝트>/audio/mix.wav -af volume=-1.0dB -c:a aac -b:a 128k -ar 48000 <프로젝트>/out/a128.m4a
+ffmpeg -y -i <프로젝트>/out/video.mp4 -an -c:v libx264 -preset slow -b:v <K>k -maxrate <2K>k -bufsize <4K>k -pass 1 -passlogfile <프로젝트>/out/x264 -pix_fmt yuv420p -colorspace bt709 -color_primaries bt709 -color_trc bt709 -f mp4 /dev/null
+ffmpeg -y -i <프로젝트>/out/video.mp4 -i <프로젝트>/out/a128.m4a -map 0:v:0 -map 1:a:0 -c:v libx264 -preset slow -b:v <K>k -maxrate <2K>k -bufsize <4K>k -pass 2 -passlogfile <프로젝트>/out/x264 -pix_fmt yuv420p -colorspace bt709 -color_primaries bt709 -color_trc bt709 -c:a copy -t <길이> -movflags +faststart <프로젝트>/out/<제목>_<길이>s_readme.mp4
+```
+
+확인할 것:
+
+- 크기가 10MB 미만이다. 넘으면 비트레이트를 낮춰 2패스를 다시 한다.
+- 첫 프레임이 포스터 역할을 한다. README는 재생 전에 첫 프레임을 보여 주므로, 첫 프레임에 무엇인지 알 수 있는 제목과 화면이 이미 떠 있어야 한다. `ffmpeg -i <사본> -frames:v 1 <프로젝트>/qa/readme_first.png`로 뽑아 Read로 본다.
+- README 플레이어 폭(약 900px)에서 글자가 읽힌다. 1920 폭 기준으로 본문은 48px 이상, 가장 작은 글자도 36px 이상이어야 900px에서 17px 안팎이 된다. 최종 시트를 900px 폭으로 줄여 Read로 보고, 작은 글자 목록을 납품 보고의 약점에 적는다. 이 크기는 장면을 만들 때부터 지킨다.
+- 마스터와 화질을 비교한다(`ffmpeg -i <사본> -i <마스터> -lavfi ssim -f null -`). 빠른 카메라 이동 구간이 가장 낮게 나온다.
+
 ## 납품 보고
 
 원래 11단계다. 납품 보고와 `제작노트.md` 형식은 `../critique-video/references/qa.md`의 "납품"에 있다. 다음을 반드시 넣는다.
@@ -92,15 +112,19 @@ python3 $S/qa_check.py <프로젝트>/out/<이름>.mp4 --timeline <프로젝트>
 
 ```bash
 python3 $S/sfx_library.py add <프로젝트>    # 새 효과음을 공용 라이브러리에 등록
-python3 $S/cleanup.py <프로젝트>            # 지울 목록과 크기만 보여 준다
-python3 $S/cleanup.py <프로젝트> --apply    # 지운다(--trash 면 휴지통으로)
+python3 $S/cleanup.py <프로젝트>            # "다시 안 쓸 것"과 "후속 작업용" 목록과 크기만 보여 준다
+python3 $S/cleanup.py <프로젝트> --apply    # "다시 안 쓸 것"을 휴지통으로 옮긴다
 ```
 
-1. 목록과 합계를 납품 보고에 붙인다.
-2. 사용자가 영상을 확인하고 끝났다고 하면 `--apply`로 지운다. 바로 지우기 망설여지면 `--apply --trash`로 휴지통에 옮긴다. `--trash`만 주면 아무것도 옮기지 않는다. 납품 완료만으로 삭제 승인을 받았다고 보지 않는다.
-3. 정리한 뒤 `제작노트.md`에 지운 것과 다시 만드는 방법을 한 줄 적는다.
+1. 두 갈래의 목록과 합계를 납품 보고에 붙인다. "후속 작업용"(무음 렌더, 렌더 조각, 음악 스템, 녹음 원본)은 나레이션·음악만 고쳐 다시 마감할 때 쓴다고 적는다.
+2. 사용자가 영상을 확인하고 끝났다고 하면 `--apply`로 "다시 안 쓸 것"을 휴지통으로 옮긴다. "후속 작업용"까지 정리하라고 하면 `--apply --followup`을 쓴다. 녹음 원본은 다시 받을 수 없으니 그 목록을 따로 보이고 확인받는다. 휴지통이 아니라 바로 지우라는 요청에만 `--delete`를 더한다. 납품 완료만으로 정리 승인을 받았다고 보지 않는다.
+3. 정리한 뒤 `제작노트.md`에 옮긴 것, 휴지통 경로, 다시 만드는 방법을 한 줄 적는다.
 
 `cleanup.py`는 납품본(포스터 JPG가 있는 이름)이 없으면 아무것도 지우지 않는다. 그 안전장치를 끄는 옵션은 일반 절차로 쓰지 않는다.
+
+## 안내 포스터
+
+영상과 같은 안내를 한 장으로 전하는 포스터를 요청받으면 Read `references/poster.md`. 그림은 이미지 모델이 만들고 글자는 HTML로 조판해 렌더하며, 세로판과 가로판을 함께 낸다.
 
 ## 자주 생기는 문제
 
@@ -111,3 +135,9 @@ python3 $S/cleanup.py <프로젝트> --apply    # 지운다(--trash 면 휴지�
 | 최종 렌더에서만 섬광·정지가 나옴 | 모션 블러 탓이다. 그 구간의 카메라 가속을 부드럽게 하거나 사건을 더하고, `render_pieces.py --only`로 그 조각만 다시 렌더한다 |
 | 공유용 음량이 마스터보다 낮음(-17 LUFS 등) | 예전 `finish.py`가 마스터의 AAC를 다시 인코딩하며 피크 보정이 과하게 걸렸다. 지금은 `--audio` 원본에서 인코딩한다. `finish.py`를 다시 돌린다 |
 | 영상이 yuvj420p·풀레인지로 나옴 | `render.mjs`와 `finish.py`를 거치면 yuv420p·tv로 나온다. 다른 도구로 인코딩하지 않는다 |
+
+## references
+
+| 파일 | 언제 읽나 |
+| --- | --- |
+| `references/poster.md` | 영상과 함께 낼 안내 포스터: 그림과 글자 나누기, 읽히는 조판, 세로·가로판, 렌더 |

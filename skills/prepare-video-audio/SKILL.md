@@ -16,7 +16,7 @@ Read ../resolve-showreel-tools/SKILL.md
 - ElevenLabs 크레딧을 아낀다. 바뀐 줄만 다시 만들고, `takes`는 고유명사·숫자 줄에만 쓴다. 효과음은 공용 라이브러리에서 먼저 찾는다.
 - op55의 정확한 `analysis.json`은 그대로 쓴다. API·내장 합성은 최종 음악을 분석해 만든다. 두 종류의 격자 정확도를 혼동하지 않는다.
 - 실제 제공자·설정·전환 이유와 출처·크레딧을 기록한다. op55의 meta는 op55 결과에만 적용한다. API 키를 대화·로그·커밋에 남기지 않는다.
-- 모든 작업 파일은 프로젝트 폴더 안에 둔다. 나레이션·효과음 원본 클립은 고치지 않고 믹서에서 처리한다.
+- 모든 작업 파일은 프로젝트 폴더 안에 둔다. 나레이션·효과음 원본 클립과 사용자 녹음 원본은 고치지 않고 믹서에서 처리한다.
 
 ## 순서
 
@@ -28,7 +28,7 @@ Read references/music.md. 음악 경로를 정하고 해당 절차로 음악과 
 2. 음악 파일을 검수하고 `script.json`의 `music.file`에 실제 경로를, `music.provider`에 실제 제공자를 적는다. 기본 파일은 `audio/music/music.wav`다. 수정 작업은 새 폴더에서 만들어 기존 음악을 보존한다.
 3. 필요한 나레이션·효과음을 만든 뒤 타임라인을 생성한다. op55는 배치된 나레이션 빈틈을 악보에 반영해 다시 렌더한다. API·내장 합성은 먼저 믹스의 gain·덕킹·자동화로 대사 공간을 확보하고 재생성은 승인된 범위에서만 한다.
 
-나레이션·효과음 기준은 `references/audio.md`에 있다.
+나레이션·효과음 기준은 `references/audio.md`에 있다. 사용자가 직접 녹음한 나레이션이면 `narrate.py` 대신 `references/audio.md`의 "사용자가 녹음한 나레이션"대로 `vo_split.py`로 줄을 나누고, 줄 길이 대 장면 표로 길이 안을 사용자와 정한다.
 
 ```bash
 python3 $S/narrate.py <프로젝트>/script.json --stt            # 나레이션이 있을 때. ✗ 줄은 고쳐서 다시
@@ -88,6 +88,6 @@ python3 $S/mix.py <프로젝트>/timeline.json --verified-music <검수한-WAV>
 
 | 파일 | 언제 읽나 |
 | --- | --- |
-| `references/audio.md` | 보이스·나레이션 생성과 발음 검증, 효과음, 믹스 기준 |
+| `references/audio.md` | 보이스·나레이션 생성과 발음 검증, 사용자가 녹음한 나레이션(원고 형식·줄 나누기·길이 맞추기), 효과음, 믹스 기준 |
 | `references/music.md` | 음악 경로 선택, op55 런타임 문서 확인, 공통 spec, 내장 합성, 파일 수락 기준 |
 | `references/elevenlabs-music.md` | Music API BYOK 설정, 생성·보정·분석, 실패 처리 |

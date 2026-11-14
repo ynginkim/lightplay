@@ -81,7 +81,7 @@ Status: implemented. 구조·설치·정적 흐름은 검증했고 실제 제작
 | 라이선스 | 해당 없음 | `LICENSE`에 원 저작권 줄을 유지하고 본인 줄 추가. `resolve-showreel-tools/LICENSE` 사본을 `copies`로 바이트 대조 |
 | 커밋 | 격리 브랜치 | `main`에서 직접, 단계마다 검사 통과 뒤 커밋·push. force push·PR 없음 |
 | 음악 재생성 뒤 화면 재사용 | 원본 `SKILL.md:149` "박 격자가 같으면 화면 재렌더 불필요" | 격자에 더해 화면이 소비하는 큐·히트·음악 에너지 곡선·크레딧 문구를 비교해 정함(plan §3, artifact-graph). `timeline.py`가 WAV에서 에너지 곡선을 다시 계산하기 때문 |
-| 정리 | 원본 `SKILL.md:256` "지울 목록부터 본 뒤 정리" | 목록과 합계를 납품 보고에 붙이고, 사용자가 끝났다고 확인한 뒤에만 `--apply` 또는 `--apply --trash`(plan §2·§4, video-creator `CLAUDE.md` "납품 뒤 정리") |
+| 정리 | 원본 `SKILL.md:256` "지울 목록부터 본 뒤 정리" | 목록과 합계를 납품 보고에 붙이고, 사용자가 끝났다고 확인한 뒤에만 `--apply`(plan §2·§4, video-creator `CLAUDE.md` "납품 뒤 정리"). 2026-11-13부터 `--apply`는 "다시 안 쓸 것"만 휴지통으로 옮기고, "후속 작업용"(무음 렌더·조각·음악 스템·녹음 원본)은 `--followup`, 영구 삭제는 `--delete`를 더할 때만 한다. 최종 믹스는 후보에서 뺐다 |
 
 ## 진입 정책과 언어
 

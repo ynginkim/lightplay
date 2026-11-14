@@ -16,7 +16,7 @@
 | 1. 소재 | 이미지·누끼를 만든 직후 | 손·얼굴 이상, 글자·로고 섞임, 레터박스, 팔레트 | `prep_images.py --sheet` |
 | 2. 스타일 프레임 | 구간마다 대표 프레임 1~2장을 만든 직후 | 포스터로 쓸 수준인가, 구간끼리 다른 작업으로 보이는가, "뻔한 화면" 요소가 이유 없이 들어갔는가 | `render.mjs --stills` + `contact_sheet.py --dir` |
 | 3. 장면별 스틸 | 장면 하나를 쓸 때마다 | 시작+0.5 · 큐+0.4 · 끝-0.6초 | 같음 |
-| 4. 초안 비평 | 모든 장면이 생긴 뒤, 고칠 때마다 | 아래 "비평"의 질문 여덟 개, 1초 간격 전체 흐름, 핵심 순간의 프레임 띠, 장면 경계 ±3프레임, 멈춘 구간·큰 움직임 | `render.mjs --scale 0.5` + `contact_sheet.py --every 1` / `--around` + `motion_check.py` |
+| 4. 초안 비평 | 모든 장면이 생긴 뒤, 고칠 때마다 | 아래 "비평"의 질문 여덟 개, 1초 간격 전체 흐름, 핵심 순간의 프레임 띠, 장면 경계 ±3프레임, 멈춘 구간·큰 움직임 | `render.mjs --scale 0.5` + `contact_sheet.py --every 1` / `--around` + `motion_check.py` + `text_probe.mjs` |
 | 5. 오디오 | 믹스 직후 | 줄별 나레이션 대 배경 dB, LUFS | `mix.py` 표 |
 | 6. 완성본 | 마감 직후 | 규격·음량·휘도·정지·완성 믹스 STT·최종 시트 | `qa_check.py --stt` |
 
@@ -59,7 +59,7 @@
 화면:
 
 - [ ] 첫 5초가 `concept.md`의 "첫 5초" 설계대로 보인다. 의도하지 않은 빈 프레임으로 시작하지 않는다
-- [ ] 모든 글자를 읽을 시간이 있다(한글 초당 6~8자)
+- [ ] `text_probe.mjs` 표에 처리하지 않은 ✗가 없다(한국어 초당 6자, 영어 초당 10자, critique-video의 "읽는 시간"). 읽기 대기는 정지 비율 때문에 줄이지 않는다
 - [ ] 화면 한글 카피(구간 이름, 가상 의뢰명, 엔드카드 문구)에 번역투·어색한 조어가 없다
 - [ ] 글자가 화면 밖으로 잘리거나 다른 요소·자막과 겹치지 않는다(의도한 크롭 제외)
 - [ ] 한글이 기본 고딕으로 대체되지 않았다(렌더 로그의 폰트 목록, 확대 크롭)
@@ -174,21 +174,30 @@ python3 $S/qa_check.py out/<이름>.mp4 --timeline timeline.json --script script
 
 ## 납품 뒤 정리
 
-5분 영상 한 편이 작업 중에 4GB를 넘게 쓴다(초안·점검 클립·검수 스틸·믹스 스템). 납품 보고를 마치면 `$S/cleanup.py`로 정리한다. 기본은 목록만 보여 주고, `--apply`를 줘야 지운다(`--trash`면 휴지통으로 옮긴다). 납품본(포스터 JPG가 있는 이름)이 없으면 아무것도 지우지 않는다.
+5분 영상 한 편이 작업 중에 4GB를 넘게 쓴다(초안·점검 클립·검수 스틸·믹스 스템). 납품 보고를 마치면 `$S/cleanup.py`로 정리한다. 기본은 목록만 보여 준다. `--apply`는 "다시 안 쓸 것"을 휴지통으로 옮기고, "후속 작업용"은 `--followup`을 더해야 옮긴다. 바로 지우는 것은 `--delete`를 더할 때뿐이다. 납품본(포스터 JPG가 있는 이름)이 없으면 아무것도 옮기지 않는다. 갈래는 `cleanup.py`의 규칙 표가 정한다.
 
 | 남긴다 | 이유 |
 | --- | --- |
-| `out/`의 납품본(마스터·공유용·포스터·자막) | 결과물. 마스터의 영상 스트림이 무음 렌더와 같아서 소리만 다시 입힐 때도 이 파일로 충분하다 |
-| `reel/`, `script.json`, `timeline.json`, `project.json` | 화면을 다시 렌더하는 데 필요하다 |
+| `out/`의 납품본(마스터·공유용·포스터·자막·README 사본) | 결과물 |
+| 최종 믹스(`audio/mix.wav`, `audio/mix_<판>.wav`처럼 스템이 아닌 `mix*.wav`) | 오디오만 다시 마감하거나 판을 나눌 때 쓴다 |
+| `reel/`, `script*.json`, `timeline*.json`, `project.json`, `versions/` | 화면을 다시 렌더하는 데 필요하다 |
 | `concept.md`, `storyboard.md`, `research/`, `제작노트.md`, 그 밖의 최상위 `.md` | 판단 기록 |
-| `audio/vo/`, `audio/sfx/` | ElevenLabs 크레딧을 쓴 소리. 다시 만들려면 돈이 든다 |
-| `audio/music/`의 악보(`score.mjs`)·스펙·`analysis.json`과 `script.json`이 가리키는 음악 파일 | 음악은 악보로 다시 렌더할 수 있지만 납품본과 같은 소리를 바로 쓸 수 있게 남긴다 |
+| `audio/vo/`의 클립과 정렬, `audio/sfx/` | ElevenLabs 크레딧을 쓴 소리, 사용자 녹음에서 나눈 클립 |
+| `audio/music/`의 악보·스펙·`analysis.json`, `script*.json`·`timeline*.json`이 가리키는 음악, `versions/<판>/`이 있을 때 `_<판>`으로 끝나는 음악 | 납품본과 같은 소리를 바로 쓸 수 있게 남긴다 |
 | `assets/` | 사진·생성 이미지(출처 기록, 생성 비용) |
 | `qa/`의 `.md`(비평·검수 보고)와 `final_sheet*.png` | 검수 기록 |
 
-| 지운다 | 다시 만드는 방법 |
+| 후속 작업용(`--followup`) | 쓰는 곳 |
 | --- | --- |
-| `out/`의 납품본이 아닌 영상(초안, 구간 초안, `chk_*`, 무음 렌더 `video.mp4`, 렌더 조각, `.parts/`) | 다시 렌더 |
-| `audio/`의 믹스(`mix.wav`, `mix_*.wav`)와 테스트 믹스 | `mix.py` |
-| `audio/music/`에서 `script.json`이 가리키지 않는 음악 테이크 | 쓰지 않은 후보 |
+| 무음 렌더 `out/video*.mp4` | 장면이 그대로일 때 오디오만 다시 마감 |
+| 렌더 조각 `out/*.pieces/`, `out/*.parts/` | 고친 조각만 다시 렌더(`render_pieces.py --only`) |
+| 음악 스템(`audio/music/dbg/stems/`, 이름에 stem이 든 음악) | 나레이션 자리를 비울 악기 고르기, 재편곡 |
+| 녹음 원본(`audio/vo/raw/`, `audio/vo_raw/`) | 줄을 다시 나누기. 다시 받을 수 없으므로 사용자가 녹음 원본까지 정리하라고 할 때만 옮긴다 |
+
+| 다시 안 쓸 것(`--apply`) | 다시 만드는 방법 |
+| --- | --- |
+| `out/`의 납품본이 아닌 영상(초안, 구간 초안, `chk_*`) | 다시 렌더 |
+| 믹스 스템 `audio/*_premaster.wav`, `*_vo.wav`, `*_bed.wav` | `mix.py`가 믹스할 때마다 새로 쓴다 |
+| op55 시험 믹스 `audio/music/verify/`의 오디오, 가리키는 곳이 없는 음악 테이크 | op55 검수, 쓰지 않은 후보 |
 | `qa/`의 영상·이미지·오디오(스틸, 프레임 띠, 시트, 점검 클립). 단 `final_sheet*.png`는 남긴다 | `render.mjs --stills`, `contact_sheet.py` |
+| x264 2패스 임시 파일(`*.mbtree`) | README 사본을 다시 인코딩 |

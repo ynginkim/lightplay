@@ -23,4 +23,5 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y ffmpeg
       - run: python3 scripts/test_music.py
+      - run: python3 scripts/test_cleanup.py
       - run: python3 scripts/install_smoke.py . --dest "$RUNNER_TEMP/skillset-smoke"
