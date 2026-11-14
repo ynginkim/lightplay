@@ -47,7 +47,6 @@ catch { console.error('playwright-core 가 없다. 한 번만: cd ' + path.dirna
 const MARKER = '.lightplay-capture-profile';
 const MASK = '█';
 const DEFAULTS = { viewport: { width: 1920, height: 1080 }, scale: 2, colorScheme: 'dark', locale: 'en-US', wait: 3000, redact: [] };
-// 저장된 포스터를 렌더한 poster/shot.mjs 와 같은 플래그. 파일 접근 플래그를 빼면 가로 포스터가 화면 전체에서 1~2단계 달라졌다
 const CHROME_ARGS = ['--force-color-profile=srgb', '--allow-file-access-from-files'];
 
 class Exit extends Error {
