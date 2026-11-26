@@ -4,6 +4,9 @@ Changes are grouped using [Keep a Changelog](https://keepachangelog.com/en/1.1.0
 
 ## [Unreleased]
 
+### Changed
+- 저장소를 public으로 전환했다(2026-11-26). 비공개 작업 폴더를 인용하는 dry-run 판정 원문(`docs/dryrun/`)을 빼고, 비공개를 전제한 문장을 고쳤다(#15). playwright-core를 1.65.1로 올렸다(#13). GitHub 경로 설치를 확인했다.
+
 ### Added
 - revise-video에 언어판(장면 코드 하나, `reel/i18n.js`와 `reel_<lang>/index.html`의 `window.LANG`, 그 언어의 자료만, 영어판 한글 0건 확인), 짧은 판, 나레이션 추가판 분기를 더한다. deliver-video에 10MB 미만 README·GitHub용 사본(2패스 x264, 첫 프레임이 포스터, 900px 플레이어 글자 크기) 절차를 더한다.
 - `vo_split.py`: 사용자가 한 파일로 녹음한 나레이션을 줄별 클립(`audio/vo/<id>.mp3`, `.align.json`, `report.json`)으로 나눠 `timeline.py`로 바로 잇는다. 받아쓰기가 있으면 단어 시각으로, 없으면 소리 크기와 macOS `say` 기준 낭독의 MFCC·DTW 거리로 줄을 찾고 다시 읽은 줄은 마지막 테이크를 쓴다. `--timeline`은 줄 길이 대 장면 표를 낸다. prepare-video-audio에 녹음 원고 형식, 길이 선택지, `--sfx-duck 0.8` 기준을 더한다.
