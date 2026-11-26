@@ -119,7 +119,7 @@ leaf skill과 principle의 자동 호출은 `false`다.
 | 층 | 결과 | 근거와 한계 |
 | --- | --- | --- |
 | 구조 | PASS | `check.py` 오류·경고 0, `selftest.py` 49개, 조건부 검사 오류 주입 5건 실패 확인 |
-| 설치 | PASS(로컬 경로) | 임시 Git 폴더에 `npx skills add` 복사 설치, 10개 skill, 두 하네스 경로에서 playbook·참조 130개 열람. GitHub 형식 설치는 미확인 |
+| 설치 | PASS(로컬 경로, GitHub 경로) | 임시 Git 폴더에 `npx skills add` 복사 설치, 10개 skill, 두 하네스 경로에서 playbook·참조 130개 열람. 2026-11-26 공개 전환 직후 빈 Git 폴더에서 `npx skills@1.7.4 add ynginkim/lightplay -a claude-code -a codex`로 10개 설치, playbook·엔진 파일 존재, 설치본 `preflight.py` 정상 종료 확인 |
 | CI | PASS(9028c20, a723dde), FAIL(dd967a3) | 골격 커밋은 원본 루트 `SKILL.md`가 남아 설치기가 skill 하나로 설치해 실패. 이후 해소 |
 | 정적 dry-run | 확정 회귀 0, 시나리오 7 전체 분류는 판정 불가 | 별도 판정자 4라운드. 라운드 3에서 발견한 index·HEAD 혼동 회귀를 5f84cc1에서 고쳤다. 라운드 4는 회귀를 찾지 못했으나 보존·질문 분기의 수용 분류를 미확정으로 남겼다. 판정 원문은 내부 기록이라 저장소 밖에 둔다 |
 | 실제 제작·청취 | unverified | 이번 범위에서 실행 금지 |
@@ -143,7 +143,7 @@ mode 이름은 `showreel-mode`로 확정했다(2026-10-24 사용자 결정). 같
 | 음악 경로 | op55 기본, ElevenLabs Music BYOK 선택, 내장 합성 fallback | 2026-10-25 사용자 결정. Suno 제외, 외부 Music 금지 정책 대체 |
 | Q4 | 도메인 adapter + 하네스 중립 운영 문장 | 운영 어휘 3개 이상이면 재검토 |
 | Q5 | 새 제작·수정 2 playbook | 오디오 교체·규격 변경은 수정 분기 |
-| 공개 | 2026-11-26 사용자 결정으로 공개. 비공개 작업 폴더를 인용하는 dry-run 판정 원문은 저장소에서 뺐다 | 이 저장소 |
+| 공개 | 2026-11-26 public으로 전환. 비공개 작업 폴더를 인용하는 dry-run 판정 원문은 저장소에서 뺐다(#15). 과거 커밋은 다시 쓰지 않았다 | 이 저장소 |
 | 제작 테스트 위치 | video-creator가 아닌 새 빈 작업 폴더. 예산 때문에 30초 영상으로 시작(2026-10-24 사용자 결정) | 첫 실제 제작 검증 |
 | 라운드 2 관찰 | 관찰 1·3·4·5 반영, 2는 보관본 유지. 시나리오 7을 라운드 3·4에서 독립 재판정(2026-10-25) | 복원 분기. 이유와 판정 결과는 [검증 기록](docs/validation.md) |
 | Q6 | 성공 경험과 피드백 수확은 사용자가 부를 때만 | 같은 문제가 두 번이면 그 일을 맡은 leaf의 reference에 기록(원본 video-creator 규칙) |
@@ -156,7 +156,6 @@ mode 이름은 `showreel-mode`로 확정했다(2026-10-24 사용자 결정). 같
 | 앱 메뉴 표시와 자연어 진입 | unverified | 설치본을 새 Claude Code·Codex 세션에서 열어 mode 진입과 leaf 명시 호출 확인 |
 | op55 leaf 변환 | 정렬함 | 설치본 문서로 경로·명령을 확인하는 방식으로 변경하고 옛 transition 두 건 삭제 |
 | 음악 세 경로 실제 품질 | 일부 확인, 외부 호출·청취 unverified | 발견·BYOK 경계·합성 pipeline 테스트와 별개로 실제 op55·ElevenLabs 음악 및 사용자의 전체 청취 확인 |
-| GitHub 형식 설치 | unverified | 공개 전환 뒤 빈 Git 프로젝트에서 `npx skills add ynginkim/lightplay -a claude-code -a codex`를 실행하고 10개 설치·형제 참조 확인 |
 | 새 세션 경로 시험(진입·원문 todo·leaf 직접 호출) | unverified | 경로 시험 예산이 승인되면 내부 검증 skill을 만들고 새 Claude·Codex 세션 각 1회로 mode 진입, playbook Read, 원문 단계 todo, leaf 직접 호출의 제약 유지를 확인 |
 | 복원 보존·질문 분기의 수용 분류 | 독립 판정 불가(라운드 4) | 기존 엄격화와 이번 인계가 허용한 차이를 수용 기준으로 명문화한 뒤 독립 판정 |
 | 옛 프로젝트의 실제 복원·폰트 로딩 | unverified | 승인된 실행에서 미추적·staged·누락 파일과 이전 엔진 덮어쓰기를 판별하고 선택 원본과 cmp. 폰트 로그·프레임·보관 폴더의 커밋 제외를 확인 |
