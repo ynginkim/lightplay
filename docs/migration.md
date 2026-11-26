@@ -46,8 +46,8 @@ showreel 단일 skill(`307b3fd`, 이 저장소 `374df70`)을 showreel-mode skill
 | `README.md` | 다시 씀 | 새 skillset 설명. 출처와 MIT 고지 포함 |
 | `README.ko.md` | 삭제 | 한국어 README.md로 통합 |
 | `CHANGELOG.md` | 삭제 | 업스트림 변경 기록. `git show 374df70:CHANGELOG.md`로 볼 수 있음 |
-| `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md` | 삭제 | 업스트림 공개 저장소용 안내(설치 경로·연락처가 업스트림 기준). 비공개 단독 저장소에서는 쓰지 않음. 공개 결정 때 다시 작성 |
-| `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md` | 삭제 | PR 없이 main에서 작업(커밋 결정). CI는 `.github/workflows/check.yml` |
+| `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md` | 삭제 후 다시 씀 | 업스트림 공개 저장소용 안내(설치 경로·연락처가 업스트림 기준)라 지웠고, 이 저장소 기준으로 #1(2026-10-24)에서 새로 썼다 |
+| `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md` | 삭제 후 이슈 템플릿만 다시 둠 | 이식 때는 PR 없이 main에서 작업했다. 이후 PR로 작업하며 이슈 템플릿을 이 저장소 기준으로 새로 뒀다. CI는 `.github/workflows/check.yml` |
 | `docs/media/` | 삭제 | 업스트림 데모 결과물. 이 skillset으로 만든 영상이 아니므로 README에 쓰지 않음 |
 | `evals/evals.json` | 유지(바이트 그대로) | 역사적 prompt 집합. 활성·보관 assertion 구분은 `evals/README.md` |
 | `LICENSE` | 유지 + 본인 줄 추가 | 사본 `skills/resolve-showreel-tools/LICENSE`, `copies`로 바이트 대조 |
